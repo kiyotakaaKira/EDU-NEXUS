@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { students, departmentStats, weeklyRiskTrend } from "@/data/students";
 import { analyzeStudent, getBatchRiskSummary } from "@/utils/sentinelAI";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, CartesianGrid, AreaChart, Area } from "recharts";
-import { Building2, Activity, TrendingDown, Cpu, ClipboardList, AlertOctagon, TrendingUp, Users, Shield, Eye, Sparkles, Plus, Download, RefreshCw, X, ChevronRight } from "lucide-react";
+import { Building2, Activity, TrendingDown, Cpu, ClipboardList, AlertOctagon, TrendingUp, Users, Shield, Eye, Sparkles, Plus, Download, RefreshCw, X, ChevronRight, Brain, Send } from "lucide-react";
 import { askClaude } from "@/utils/claudeAI";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,18 +13,6 @@ const COLORS = ["hsl(142 71% 45%)", "hsl(0 72% 51%)", "hsl(45 100% 50%)", "hsl(2
 export default function HODView({ activePage = "dashboard" }: { activePage?: string }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("Department Overview");
-  
-  
-  useEffect(() => {
-    switch (activePage) {
-      case "dashboard": setActiveTab("Department Overview"); break;
-      case "risk": setActiveTab("Department Overview"); break; 
-      case "insights": setActiveTab("Dropout Insights AI"); break;
-      case "oracle": setActiveTab("Department Overview"); break; 
-      case "audit": setActiveTab("Intervention Audit"); break;
-      default: setActiveTab("Department Overview");
-    }
-  }, [activePage]);
   
   // Scope to HOD's department
   const deptStudents = students.filter(s => s.department === user?.department);
@@ -57,6 +45,32 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
   const [oracleMode, setOracleMode] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
+
+  /* Ask Sentinel AI Chat State */
+  const [messages, setMessages] = useState<{role: "assistant"|"user", content: string}[]>([
+    { role: "assistant", content: `${user?.name.split(" ")[0]}, I've analyzed your department of ${deptStudents.length} students. ${riskCounts.Critical} are critical. Would you like department-wide strategy suggestions?` }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, isTyping]);
+
+  const handleSendChat = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || isTyping) return;
+    
+    const userMessage = chatInput.trim();
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setChatInput("");
+    setIsTyping(true);
+
+    const systemPrompt = `You are Sentinel, an AI HOD advisor for ${user?.name}. You analyze department performance. ${riskCounts.Critical} students are critical. Be concise, practical. Under 150 words.`;
+    
+    const response = await askClaude(systemPrompt, userMessage);
+    setMessages(prev => [...prev, { role: "assistant", content: response }]);
+    setIsTyping(false);
+  };
 
   const runMacroAnalysis = async (pattern: string) => {
     setOracleMode(true);
@@ -100,7 +114,7 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
     <div className="space-y-6">
       {/* Local Tab Navigation hidden since sidebar controls this now */}
 
-      {activeTab === "Department Overview" && (
+      {activePage === "overview" && (
         <div className="space-y-6 animate-fade-up">
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
             {kpis.map((k, idx) => {
@@ -119,11 +133,10 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
               );
             })}
           </div>
-
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 card-warm p-6 card-glow-hover border-border/50">
               <h3 className="text-[13px] font-bold section-label tracking-widest mb-5">Weekly Risk Trend Line</h3>
-              <div className="h-64">
+              <div className="w-full h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={weeklyRiskTrend}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.5} />
@@ -148,7 +161,7 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
               )}
               <h3 className="text-[13px] font-bold section-label tracking-widest mb-2">Risk Distribution</h3>
               <p className="text-[10px] text-muted-foreground text-center mb-2 italic">Click a slice to filter</p>
-              <div className="flex-1 min-h-[200px] cursor-pointer" onClick={(e: any) => {
+              <div className="w-full h-[300px] cursor-pointer" onClick={(e: any) => {
                 if (e && e.activePayload && e.activePayload.length) {
                   const clickedStatus = e.activePayload[0].name;
                   setPieFilter(clickedStatus === pieFilter ? null : clickedStatus);
@@ -184,7 +197,73 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
         </div>
       )}
 
-      {activeTab === "Dropout Insights AI" && (
+      {activePage === "analytics" && (
+        <div className="space-y-6 animate-fade-up">
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 card-warm p-6 card-glow-hover border-border/50">
+              <h3 className="text-[13px] font-bold section-label tracking-widest mb-5">Weekly Risk Trend Line</h3>
+              <div className="w-full h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={weeklyRiskTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.5} />
+                    <XAxis dataKey="week" tick={{ fill: "#888", fontSize: 11, fontFamily: "var(--font-mono)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#888", fontSize: 11, fontFamily: "var(--font-mono)" }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", fontFamily: "var(--font-mono)" }} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                    <Legend wrapperStyle={{ fontSize: "12px" }} />
+                    <Line type="monotone" dataKey="critical" stroke="#dc2626" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="atRisk" stroke="#d97706" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="safe" stroke="#16a34a" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="card-warm p-6 card-glow-hover border-border/50 flex flex-col relative">
+              {pieFilter && (
+                <div className="absolute top-4 right-4 flex items-center gap-2 bg-surface-warm/80 backdrop-blur-md border border-border/50 px-2 py-1 rounded shadow-sm text-[10px] z-10 font-bold tracking-wide">
+                  <span className="text-muted-foreground">Showing: <span className="gradient-text-gold">{pieFilter}</span></span>
+                  <button onClick={() => setPieFilter(null)} className="hover:text-chart-critical text-muted-foreground transition-colors"><X className="h-3 w-3" /></button>
+                </div>
+              )}
+              <h3 className="text-[13px] font-bold section-label tracking-widest mb-2">Risk Distribution</h3>
+              <p className="text-[10px] text-muted-foreground text-center mb-2 italic">Click a slice to filter</p>
+              <div className="w-full h-[300px] cursor-pointer" onClick={(e: any) => {
+                if (e && e.activePayload && e.activePayload.length) {
+                  const clickedStatus = e.activePayload[0].name;
+                  setPieFilter(clickedStatus === pieFilter ? null : clickedStatus);
+                }
+              }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie 
+                      data={Object.entries(riskCounts).map(([k,v]) => ({ name: k, value: v }))} 
+                      cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                      onClick={(_, index) => {
+                        const status = Object.keys(riskCounts)[index];
+                        setPieFilter(status);
+                        setPieModalOpen(true);
+                      }}
+                    >
+                      {Object.keys(riskCounts).map((key, i) => (
+                        <Cell 
+                          key={i} 
+                          fill={key === "Critical" ? "#dc2626" : key === "Safe" ? "#16a34a" : key === "Observation" ? "#d97706" : "#f97316"}
+                          className="hover:opacity-80 transition-opacity outline-none"
+                          stroke={pieFilter === key ? "var(--foreground)" : "transparent"}
+                          strokeWidth={pieFilter === key ? 2 : 0}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px", fontSize: "12px", fontWeight: "bold", fontFamily: "var(--font-mono)" }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activePage === "insights" && (
         <div className="space-y-6 animate-fade-up">
           <div className="flex items-center gap-4 border-b border-border/50 pb-5">
             <div className="h-12 w-12 rounded-xl gradient-maroon flex items-center justify-center glow-maroon shadow-md border border-accent/20">
@@ -233,7 +312,7 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
         </div>
       )}
 
-      {activeTab === "Intervention Audit" && (
+      {activePage === "audit" && (
         <div className="card-warm overflow-x-auto overflow-hidden animate-fade-up shadow-xl border-border/50 relative z-10">
           <table className="w-full text-xs text-left border-collapse">
             <thead className="bg-surface-warm/30 border-b border-border/50 text-muted-foreground">
@@ -321,7 +400,71 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
         >
           <Plus className="h-6 w-6" />
         </button>
-      </div>      {/* SEPARATE MODALS */}
+      </div>
+
+      {/* Ask Sentinel AI Chat */}
+      {activePage === "chat" && (
+        <div className="space-y-6 animate-fade-up">
+          <div className="card-warm hero-mesh flex flex-col h-[700px] shadow-2xl overflow-hidden max-w-4xl mx-auto w-full rounded-[24px]">
+            <div className="bg-surface/60 backdrop-blur-md border-b border-border/50 px-6 py-4 flex items-center gap-4 z-10">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl gradient-maroon shadow-md border border-accent/20 glow-maroon">
+                <Brain className="h-5 w-5 text-accent animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold font-syne tracking-wide gradient-text-gold">HOD Strategic Assistant</h3>
+                <p className="text-[11px] section-label mt-0.5" >Department-Level Insights AI</p>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative z-10 bg-gradient-to-b from-transparent to-surface-warm/30">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex gap-4 max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${m.role === "assistant" ? "bg-card border border-accent/20 text-accent glow-gold" : "gradient-maroon text-muted/80" }`}>
+                    {m.role === "assistant" ? <Brain className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                  </div>
+                  <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-sm backdrop-blur-sm ${m.role === "user" ? "bg-accent/10 border border-accent/20 text-foreground rounded-tr-sm" : "bg-card/80 border border-border/50 text-foreground rounded-tl-sm border-l-2 border-l-accent"}`}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="flex gap-4 max-w-[85%]">
+                  <div className="h-8 w-8 rounded-full bg-card border border-accent/20 flex items-center justify-center shrink-0 shadow-sm glow-gold">
+                    <Brain className="h-4 w-4 text-accent animate-pulse" />
+                  </div>
+                  <div className="p-4 rounded-2xl bg-card/80 border border-border/50 rounded-tl-sm flex gap-2 items-center shadow-sm">
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="p-4 bg-surface/80 backdrop-blur-md border-t border-border/50 z-10">
+              <form onSubmit={handleSendChat} className="flex gap-3 max-w-4xl mx-auto">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask about department patterns, retention strategies, or specific risk zones..."
+                  className="flex-1 bg-card/50 border border-border/50 rounded-xl px-5 py-3 text-[13px] focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() || isTyping}
+                  className="gradient-maroon text-accent px-5 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-md glow-maroon"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SEPARATE MODALS */}
       <Dialog open={retentionModalOpen} onOpenChange={setRetentionModalOpen}>
         <DialogContent className="sm:max-w-[500px] border-border/50 bg-surface-warm shadow-2xl p-6">
           <DialogHeader><DialogTitle className="text-xl font-bold font-syne tracking-wide gradient-text-gold">Semester Over Semester Retention</DialogTitle></DialogHeader>

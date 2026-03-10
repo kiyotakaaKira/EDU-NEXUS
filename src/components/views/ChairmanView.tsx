@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { students, departmentStats } from "@/data/students";
 import { getBatchRiskSummary, analyzeStudent } from "@/utils/sentinelAI";
-import { Users, Shield, Target, AlertTriangle, BarChart3, ChevronRight, FileText, Globe, TrendingUp, TrendingDown, CheckCircle, Download, Share2, Crown, ClipboardList } from "lucide-react";
-import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, AreaChart, Area, Legend, Cell, LineChart, Line } from "recharts";
+import { Users, Shield, Target, AlertTriangle, BarChart3, ChevronRight, FileText, Globe, TrendingUp, TrendingDown, CheckCircle, Download, Share2, Crown, ClipboardList, Brain, Send } from "lucide-react";
+import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, AreaChart, Area, Legend, Cell, LineChart, Line, BarChart, Bar } from "recharts";
 import { askClaude } from "@/utils/claudeAI";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -24,18 +25,16 @@ const DEPT_COLORS: Record<string, string> = {
 const TABS = ["Strategic Overview", "Industry Readiness", "SDG 4 Impact", "Institution Report"] as const;
 type Tab = typeof TABS[number];
 
-import { useEffect } from "react";
-
 export default function ChairmanView({ activePage = "dashboard" }: { activePage?: string }) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("Strategic Overview");
   
   useEffect(() => {
     switch (activePage) {
-      case "dashboard": setActiveTab("Strategic Overview"); break;
+      case "strategic": setActiveTab("Strategic Overview"); break;
       case "industry": setActiveTab("Industry Readiness"); break;
       case "sdg": setActiveTab("SDG 4 Impact"); break;
       case "report": setActiveTab("Institution Report"); break;
-      case "insights": setActiveTab("Strategic Overview"); break; 
       default: setActiveTab("Strategic Overview");
     }
   }, [activePage]);
@@ -116,6 +115,29 @@ export default function ChairmanView({ activePage = "dashboard" }: { activePage?
 
   const selectedStudent = selectedStudentId ? students.find(s => s.id === selectedStudentId) : null;
 
+  /* Ask Sentinel AI Chat State */
+  const [messages, setMessages] = useState<{role: "assistant"|"user", content: string}[]>([
+    { role: "assistant", content: `Chairman, I've analyzed the institution's strategic performance. With ${criticalCount} critical students and ${instScore}/100 institution score, I can help you set strategic goals and mandates for department heads.` }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, isTyping]);
+
+  const handleSendChat = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || isTyping) return;
+    const userMessage = chatInput.trim();
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setChatInput("");
+    setIsTyping(true);
+    const systemPrompt = `You are Sentinel, a strategic AI advisor for the Chairman of Chennai Institute of Technology. Provide concise boardroom-level insights. Be authoritative and strategic. Under 150 words.`;
+    const response = await askClaude(systemPrompt, userMessage);
+    setMessages(prev => [...prev, { role: "assistant", content: response }]);
+    setIsTyping(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Local Tab Navigation hidden since sidebar controls this now */}
@@ -180,44 +202,38 @@ export default function ChairmanView({ activePage = "dashboard" }: { activePage?
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* RADAR CHART */}
+              {/* DEPT PERFORMANCE BAR CHART (replaces broken RadarChart) */}
               <div className="card-warm p-6 card-glow-hover border-border/50 shadow-sm animate-fade-up" style={{ animationDelay: "0.6s", animationFillMode: "both" }}>
                 <div className="flex flex-col mb-4">
                   <h3 className="text-[13px] font-bold section-label tracking-widest mb-1">Department Performance Matrix</h3>
-                  <p className="text-[10px] italic text-muted-foreground">Click legend to filter departments</p>
+                  <p className="text-[10px] italic text-muted-foreground">Multi-metric comparison across departments</p>
                 </div>
-                <div className="h-[380px] w-full">
+                <div className="w-full h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-                      <PolarGrid stroke="var(--border)" opacity={0.5} />
-                      <PolarAngleAxis dataKey="dept" tick={{ fill: "#888", fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: "bold" }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}
-                        itemStyle={{ fontSize: '13px' }}
+                    <BarChart
+                      data={radarData}
+                      margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                      barCategoryGap="20%"
+                      barGap={2}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.5} />
+                      <XAxis dataKey="dept" tick={{ fill: "#aaa", fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: "bold" }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fill: "#888", fontSize: 10, fontFamily: "var(--font-mono)" }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                        contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "12px", fontSize: "12px", fontWeight: "bold" }}
                       />
-                      <Legend 
-                        iconType="circle" 
-                        wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingTop: '20px', fontFamily: "var(--font-mono)" }}
-                        onClick={(e: any) => {
-                          const dept = e.value;
-                          setVisibleDepts(prev => prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]);
-                        }}
-                      />
-                      {radarData.map((d: any) => (
-                        <Radar 
-                          key={d.dept}
-                          name={d.dept} 
-                          dataKey={d.dept === "AI & DS" ? "Attendance" : d.dept === "CSE" ? "IAT Score" : d.dept === "ECE" ? "Model Exam" : "Hackathons"} // placeholder trick for tooltip, Recharts Radar requires mapping keys per polygon differently if data is row-wise.
-                          // Actually, standard Recharts radar expects columns as keys. Let's remap Data.
-                          // Wait, the data structure provided in instructions is row-wise per dept. Recharts Radar needs it column-wise per metric!
-                          // Let's fix the data mapping inline below.
-                        />
-                      ))}
-                    </RadarChart>
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: "10px", fontWeight: "bold", paddingTop: "16px", fontFamily: "var(--font-mono)" }} />
+                      <Bar dataKey="Attendance" fill="#4ade80" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                      <Bar dataKey="IAT Score" fill="#60a5fa" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                      <Bar dataKey="Model Exam" fill="#f97316" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                      <Bar dataKey="Hackathons" fill="#c084fc" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                      <Bar dataKey="Safe Rate" fill="#facc15" radius={[4, 4, 0, 0]} maxBarSize={18} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
+
 
               {/* RISK TREND LINE */}
               <div className="card-warm p-6 card-glow-hover border-border/50 shadow-sm flex flex-col animate-fade-up" style={{ animationDelay: "0.7s", animationFillMode: "both" }}>
@@ -225,7 +241,7 @@ export default function ChairmanView({ activePage = "dashboard" }: { activePage?
                   <h3 className="text-[13px] font-bold section-label tracking-widest mb-1">8-Week Risk Evolution</h3>
                   <p className="text-[10px] italic text-muted-foreground">Click legend to toggle lines</p>
                 </div>
-                <div className="flex-1 min-h-[280px] w-full mt-4">
+                <div className="w-full h-[300px] mt-4">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={weeklyRiskData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.5} />
@@ -476,7 +492,7 @@ export default function ChairmanView({ activePage = "dashboard" }: { activePage?
               {/* DROPOUT PROJECTION AREA CHART */}
               <div className="lg:col-span-2 card-warm p-8 card-glow-hover border-border/50 shadow-sm animate-fade-up" style={{ animationDelay: "0.4s", animationFillMode: "both" }}>
                 <h3 className="text-[13px] font-bold section-label tracking-widest mb-6 border-b border-border/50 pb-4">Semester Dropout Probability Projection</h3>
-                <div className="h-[320px] w-full">
+                <div className="w-full h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={projectionData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                       <defs>
@@ -778,6 +794,66 @@ export default function ChairmanView({ activePage = "dashboard" }: { activePage?
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Ask Sentinel AI Chat */}
+      {activePage === "chat" && (
+        <div className="space-y-6 animate-fade-up">
+          <div className="card-warm hero-mesh flex flex-col h-[700px] shadow-2xl overflow-hidden max-w-4xl mx-auto w-full rounded-[24px]">
+            <div className="bg-surface/60 backdrop-blur-md border-b border-border/50 px-6 py-4 flex items-center gap-4 z-10">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl gradient-maroon shadow-md border border-accent/20 glow-maroon">
+                <Brain className="h-5 w-5 text-accent animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold font-syne tracking-wide gradient-text-gold">Chairman Strategic AI</h3>
+                <p className="text-[11px] section-label mt-0.5">Executive Board Intelligence</p>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative z-10 bg-gradient-to-b from-transparent to-surface-warm/30">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex gap-4 max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${m.role === "assistant" ? "bg-card border border-accent/20 text-accent glow-gold" : "gradient-maroon text-muted/80"}`}>
+                    {m.role === "assistant" ? <Brain className="h-4 w-4" /> : <Crown className="h-4 w-4" />}
+                  </div>
+                  <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-sm backdrop-blur-sm ${m.role === "user" ? "bg-accent/10 border border-accent/20 text-foreground rounded-tr-sm" : "bg-card/80 border border-border/50 text-foreground rounded-tl-sm border-l-2 border-l-accent"}`}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="flex gap-4 max-w-[85%]">
+                  <div className="h-8 w-8 rounded-full bg-card border border-accent/20 flex items-center justify-center shrink-0 shadow-sm glow-gold">
+                    <Brain className="h-4 w-4 text-accent animate-pulse" />
+                  </div>
+                  <div className="p-4 rounded-2xl bg-card/80 border border-border/50 rounded-tl-sm flex gap-2 items-center shadow-sm">
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            <div className="p-4 bg-surface/80 backdrop-blur-md border-t border-border/50 z-10">
+              <form onSubmit={handleSendChat} className="flex gap-3 max-w-4xl mx-auto">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask about strategic goals, SDG alignment, industry readiness, or institution-wide mandates..."
+                  className="flex-1 bg-card/50 border border-border/50 rounded-xl px-5 py-3 text-[13px] focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() || isTyping}
+                  className="gradient-maroon text-accent px-5 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-md glow-maroon"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

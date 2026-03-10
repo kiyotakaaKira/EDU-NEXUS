@@ -25,7 +25,7 @@ export default {
         popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
         gold: { DEFAULT: "hsl(var(--gold))", foreground: "hsl(var(--gold-foreground))" },
-        maroon: { DEFAULT: "hsl(var(--maroon))", light: "hsl(var(--maroon-light))" },
+        maroon: { DEFAULT: "hsl(220 60% 25%)", light: "hsl(220 55% 35%)" },
         surface: { DEFAULT: "hsl(var(--surface))", hover: "hsl(var(--surface-hover))" },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

@@ -1,19 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { students, departmentStats } from "@/data/students";
 import { analyzeStudent, getBatchRiskSummary } from "@/utils/sentinelAI";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, CartesianGrid, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
-import { Shield, AlertOctagon, CheckSquare, TrendingDown, Globe, Sparkles, Clock, CheckCircle, Cpu, Users } from "lucide-react";
+import { Shield, AlertOctagon, CheckSquare, TrendingDown, Globe, Sparkles, Clock, CheckCircle, Cpu, Users, Plus, Download, Brain, Send } from "lucide-react";
 import { askClaude } from "@/utils/claudeAI";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-import { useEffect } from "react";
 
 export default function PrincipalView({ activePage = "dashboard" }: { activePage?: string }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("Institution Overview");
   const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());
+  const [fabOpen, setFabOpen] = useState(false);
 
   const [monitoredModalOpen, setMonitoredModalOpen] = useState(false);
   const [criticalModalOpen, setCriticalModalOpen] = useState(false);
@@ -22,11 +21,9 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
 
   useEffect(() => {
     switch (activePage) {
-      case "dashboard": setActiveTab("Institution Overview"); break;
+      case "overview": setActiveTab("Institution Overview"); break;
       case "escalation": setActiveTab("Escalation Panel"); break;
       case "compliance": setActiveTab("Compliance Tracker"); break;
-      case "analytics": setActiveTab("Cross-Dept Analytics"); break;
-      case "insights": setActiveTab("Dropout Insights AI"); break;
       default: setActiveTab("Institution Overview");
     }
   }, [activePage]);
@@ -53,6 +50,32 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
   const [oracleMode, setOracleMode] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
+
+  /* Ask Sentinel AI Chat State */
+  const [messages, setMessages] = useState<{role: "assistant"|"user", content: string}[]>([
+    { role: "assistant", content: `Principal ${user?.name.split(" ")[0]}, I've analyzed the institution's real-time data. We have ${batchSummary.criticalCount || 0} critical escalations across ${departmentStats.filter(d=>d.total>0).length} departments. How can I assist with your executive strategy?` }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, isTyping]);
+
+  const handleSendChat = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || isTyping) return;
+    
+    const userMessage = chatInput.trim();
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setChatInput("");
+    setIsTyping(true);
+
+    const systemPrompt = `You are Sentinel, an AI Executive advisor for Principal ${user?.name}. You analyze institution performance. Be concise, strategic, and authoritative. Under 150 words.`;
+    
+    const response = await askClaude(systemPrompt, userMessage);
+    setMessages(prev => [...prev, { role: "assistant", content: response }]);
+    setIsTyping(false);
+  };
 
   const runMacroAnalysis = async (pattern: string) => {
     setOracleMode(true);
@@ -92,7 +115,7 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="card-warm p-6 card-glow-hover border-border/50 shadow-sm animate-fade-up" style={{ animationDelay: "0.2s", animationFillMode: "both" }}>
               <h3 className="text-[13px] font-bold section-label tracking-widest mb-6">Department Risk Leaderboard</h3>
-              <div className="h-[280px]">
+              <div className="w-full h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={deptCritical} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.5} />
@@ -222,7 +245,7 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
         {activeTab === "Cross-Dept Analytics" && (
         <div className="card-warm border-border/50 p-8 h-[550px] shadow-sm flex flex-col animate-fade-up" style={{ animationDelay: "0.1s", animationFillMode: "both" }}>
            <h3 className="text-[13px] font-bold section-label tracking-widest mb-6 flex items-center gap-3"><Globe className="h-5 w-5 text-accent" /> Institutional Department Comparison Radar</h3>
-           <div className="flex-1 w-full bg-surface-warm/30 rounded-2xl border border-border/50 shadow-inner p-4">
+           <div className="w-full h-[300px] bg-surface-warm/30 rounded-2xl border border-border/50 shadow-inner p-4">
              <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="var(--border)" opacity={0.5} />
@@ -289,6 +312,68 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
         </div>
       )}      
 
+      {/* Ask Sentinel AI Chat */}
+      {activePage === "chat" && (
+        <div className="space-y-6 animate-fade-up">
+          <div className="card-warm hero-mesh flex flex-col h-[700px] shadow-2xl overflow-hidden max-w-4xl mx-auto w-full rounded-[24px]">
+            <div className="bg-surface/60 backdrop-blur-md border-b border-border/50 px-6 py-4 flex items-center gap-4 z-10">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl gradient-maroon shadow-md border border-accent/20 glow-maroon">
+                <Brain className="h-5 w-5 text-accent animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold font-syne tracking-wide gradient-text-gold">Principal Executive Advisor</h3>
+                <p className="text-[11px] section-label mt-0.5" >Institution-Wide Insights AI</p>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative z-10 bg-gradient-to-b from-transparent to-surface-warm/30">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex gap-4 max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${m.role === "assistant" ? "bg-card border border-accent/20 text-accent glow-gold" : "gradient-maroon text-muted/80" }`}>
+                    {m.role === "assistant" ? <Brain className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                  </div>
+                  <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-sm backdrop-blur-sm ${m.role === "user" ? "bg-accent/10 border border-accent/20 text-foreground rounded-tr-sm" : "bg-card/80 border border-border/50 text-foreground rounded-tl-sm border-l-2 border-l-accent"}`}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {isTyping && (
+                <div className="flex gap-4 max-w-[85%]">
+                  <div className="h-8 w-8 rounded-full bg-card border border-accent/20 flex items-center justify-center shrink-0 shadow-sm glow-gold">
+                    <Brain className="h-4 w-4 text-accent animate-pulse" />
+                  </div>
+                  <div className="p-4 rounded-2xl bg-card/80 border border-border/50 rounded-tl-sm flex gap-2 items-center shadow-sm">
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="p-4 bg-surface/80 backdrop-blur-md border-t border-border/50 z-10">
+              <form onSubmit={handleSendChat} className="flex gap-3 max-w-4xl mx-auto">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask for institution-wide retention strategies, compliance scores, or escalation metrics..."
+                  className="flex-1 bg-card/50 border border-border/50 rounded-xl px-5 py-3 text-[13px] focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() || isTyping}
+                  className="gradient-maroon text-accent px-5 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-md glow-maroon"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}      
+
       {/* MODALS */}
       <Dialog open={monitoredModalOpen} onOpenChange={setMonitoredModalOpen}>
         <DialogContent className="sm:max-w-[500px] border-border/50 bg-surface-warm shadow-2xl p-6">
@@ -342,6 +427,31 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* FLOATING ACTION BUTTON */}
+      <div className="fixed bottom-6 right-6 z-50">
+        {fabOpen && (
+           <>
+            <div className="fixed inset-0 bg-background/20 backdrop-blur-sm z-40" onClick={() => setFabOpen(false)} />
+            <div className="absolute bottom-16 right-0 z-50 flex flex-col gap-3 mb-2 items-end animate-in slide-in-from-bottom-5">
+              <button onClick={() => { toast("Broadcasting Institutional Notification..."); setFabOpen(false); }} className="flex items-center gap-3 bg-card border border-accent/30 text-accent hover:bg-accent/10 px-4 py-2.5 rounded-full shadow-lg transition-colors group whitespace-nowrap">
+                <span className="text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">Broadcast Notification</span>
+                <Globe className="h-5 w-5 shrink-0" />
+              </button>
+              <button onClick={() => { toast.success("Institution report exported to Excel"); setFabOpen(false); }} className="flex items-center gap-3 bg-card border border-blue-500/30 text-blue-500 hover:bg-blue-500/10 px-4 py-2.5 rounded-full shadow-lg transition-colors group whitespace-nowrap">
+                <span className="text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">Download Full Report</span>
+                <Download className="h-5 w-5 shrink-0" />
+              </button>
+            </div>
+           </>
+        )}
+        <button 
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`h-14 w-14 rounded-full gradient-maroon text-accent flex items-center justify-center shadow-[0_0_20px_rgba(128,0,0,0.5)] transition-transform duration-300 relative z-50 ${fabOpen ? "rotate-45" : "hover:scale-105"}`}
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      </div>
 
     </div>
   );

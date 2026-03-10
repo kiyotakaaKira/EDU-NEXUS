@@ -214,7 +214,7 @@ export default function StudentView({ activePage = "dashboard" }: { activePage?:
           {/* Weekly Attendance Chart */}
           <div className="md:col-span-2 lg:col-span-2 card-warm p-6 card-glow-hover stagger-1">
           <h3 className="text-sm font-bold font-syne text-foreground mb-6 flex items-center gap-2 tracking-wide"><TrendingUp className="h-4 w-4 text-accent" /> Your Attendance Journey</h3>
-          <div className="h-[250px] w-full">
+          <div className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(20 12% 20%)" vertical={false} />

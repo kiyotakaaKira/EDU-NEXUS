@@ -45,6 +45,14 @@ export default function LoginPage() {
     setUserId(uid);
     setPassword(pass);
     setError(false);
+    setLoading(true);
+    setTimeout(() => {
+      const success = login(uid, pass);
+      if (!success) {
+        setError(true);
+        setLoading(false);
+      }
+    }, 600);
   };
 
   return (
@@ -65,8 +73,10 @@ export default function LoginPage() {
           {/* Header */}
           <div className="mb-8 flex flex-col items-center justify-center text-center relative z-10 w-full">
             <img src="/cit-logo-light.png" alt="CIT Logo" className="h-16 w-auto mb-4 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-yellow-400 mx-auto mb-4">
+              <span className="text-3xl">🦋</span>
+            </div>
             <h1 className="text-[44px] leading-tight font-bold tracking-tight gradient-text-gold font-syne flex items-center gap-3">
-              <Shield className="h-10 w-10 text-accent animate-sentinel-beat" />
               CIT-Sentinel
             </h1>
             <p className="mt-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">AI & DS Dept</p>
@@ -87,6 +97,7 @@ export default function LoginPage() {
                   onChange={(e) => { setUserId(e.target.value); setError(false); }}
                   className="w-full input-warm px-4 py-3 font-mono text-sm"
                   placeholder="CITXXXXXX or FACXXX"
+                  autoComplete="off"
                   required
                 />
               </div>
@@ -99,6 +110,7 @@ export default function LoginPage() {
                   onChange={(e) => { setPassword(e.target.value); setError(false); }}
                   className="w-full input-warm px-4 py-3 font-mono text-sm"
                   placeholder="••••••••"
+                  autoComplete="off"
                   required
                 />
               </div>

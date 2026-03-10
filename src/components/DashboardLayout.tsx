@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Menu, Shield, GraduationCap, BookOpen, Users, Building2, Crown, X, LogOut, Bell, ChevronRight, Home, TrendingUp, Brain, Play, Edit3, AlertTriangle, Link2, Cpu, Activity, ClipboardList, Target, Globe, CheckSquare, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthUser } from "@/types/auth";
@@ -28,38 +28,39 @@ const SIDEBAR_NAV: Record<string, NavItem[]> = {
     { icon: Play, label: "Concept Videos", id: "videos" },
   ],
   "Subject Teacher": [
-    { icon: BarChart3, label: "Class Overview", id: "dashboard" },
-    { icon: Edit3, label: "Mark Entry", id: "marks" },
-    { icon: AlertTriangle, label: "At-Risk Students", id: "at-risk" },
-    { icon: Brain, label: "Ask Sentinel AI", id: "chat" },
+    { icon: BarChart3, label: "Class Overview", id: "overview" },
+    { icon: Edit3, label: "Mark Entry", id: "markentry" },
+    { icon: AlertTriangle, label: "At-Risk Students", id: "atrisk" },
+    { icon: Brain, label: "Ask Sentinel AI", id: "chat" }
   ],
   Mentor: [
-    { icon: Users, label: "Mentee Dashboard", id: "dashboard" },
-    { icon: Shield, label: "Intervention Plans", id: "interventions" },
-    { icon: Link2, label: "Peer Bridge", id: "peer" },
+    { icon: Users, label: "Mentee Dashboard", id: "mentees" },
+    { icon: Shield, label: "Intervention Plans", id: "plans" },
+    { icon: Link2, label: "Peer Bridge", id: "peerbridge" },
     { icon: Cpu, label: "Dropout Oracle AI", id: "oracle" },
     { icon: Brain, label: "Ask Sentinel AI", id: "chat" },
   ],
   HOD: [
-    { icon: Building2, label: "Department Overview", id: "dashboard" },
-    { icon: Activity, label: "Risk Analytics", id: "risk" },
+    { icon: Building2, label: "Department Overview", id: "overview" },
+    { icon: Activity, label: "Risk Analytics", id: "analytics" },
     { icon: TrendingDown, label: "Dropout Insights AI", id: "insights" },
-    { icon: Cpu, label: "Dropout Oracle AI", id: "oracle" },
     { icon: ClipboardList, label: "Intervention Audit", id: "audit" },
+    { icon: Brain, label: "Ask Sentinel AI", id: "chat" },
   ],
   Principal: [
-    { icon: Shield, label: "Institution Overview", id: "dashboard" },
+    { icon: Shield, label: "Institution Overview", id: "overview" },
     { icon: AlertTriangle, label: "Escalation Panel", id: "escalation" },
     { icon: CheckSquare, label: "Compliance Tracker", id: "compliance" },
     { icon: TrendingDown, label: "Dropout Insights AI", id: "insights" },
     { icon: Globe, label: "Cross-Dept Analytics", id: "analytics" },
+    { icon: Brain, label: "Ask Sentinel AI", id: "chat" },
   ],
   Chairman: [
-    { icon: Crown, label: "Strategic Dashboard", id: "dashboard" },
+    { icon: Crown, label: "Strategic Dashboard", id: "strategic" },
     { icon: Target, label: "Industry Readiness", id: "industry" },
     { icon: Globe, label: "SDG 4 Impact", id: "sdg" },
-    { icon: TrendingDown, label: "Dropout Insights AI", id: "insights" },
     { icon: FileText, label: "Institution Report", id: "report" },
+    { icon: Brain, label: "Ask Sentinel AI", id: "chat" },
   ],
 };
 
@@ -76,6 +77,10 @@ export default function DashboardLayout({ user, children }: Props) {
   const navItems = SIDEBAR_NAV[user.role] || [];
   const [activePage, setActivePage] = useState(navItems[0]?.id || "dashboard");
   const activeLabel = navItems.find(n => n.id === activePage)?.label || "Dashboard";
+
+  useEffect(() => {
+    document.title = `${activeLabel} | CIT-Sentinel`;
+  }, [activeLabel]);
 
   const RoleIcon = ROLE_ICONS[user.role] || Shield;
   const SEMESTER_WEEK = 6;
@@ -100,16 +105,17 @@ export default function DashboardLayout({ user, children }: Props) {
         <div className="flex flex-col items-start gap-2 border-b border-border/50 px-5 pt-6 pb-4 relative z-10 w-full hover:bg-surface/50 transition-colors">
           <img src="/cit-logo-light.png" alt="CIT Logo" className="h-12 w-auto object-contain mb-2" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <div className="flex items-center gap-3 w-full">
-            <Shield className="h-8 w-8 text-accent flex-shrink-0 animate-sentinel-beat glow-gold rounded-full bg-accent/10 p-1" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400 overflow-hidden flex-shrink-0">
+              <span className="text-lg">🦋</span>
+            </div>
             <div className="min-w-0 flex-1 flex flex-col items-start">
-              <h1 className="text-base font-bold tracking-tight gradient-text-gold font-syne">CIT-Sentinel</h1>
-              <p className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[10px] font-mono font-bold text-accent mt-0.5 inline-block border border-accent/20">v2.0</p>
+              <h1 className="text-sm font-bold tracking-tight text-foreground leading-tight">CIT-Sentinel</h1>
+              <p className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground leading-tight">Chennai Inst. of Tech</p>
             </div>
             <button className="ml-auto lg:hidden btn-ghost p-1" onClick={() => setSidebarOpen(false)}>
               <X className="h-5 w-5 text-muted-foreground" />
             </button>
           </div>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground ml-11">{user.department} Dept</p>
         </div>
 
         {/* User Role Badge */}
@@ -222,7 +228,7 @@ export default function DashboardLayout({ user, children }: Props) {
           </div>
         </header>
 
-        <div className="h-[2px] w-full gradient-maroon shadow-[0_0_10px_hsl(0_85%_28%/_0.5)] z-20 relative" />
+        <div className="h-[2px] w-full shadow-[0_0_10px_hsl(220_60%_25%/_0.5)] z-20 relative" style={{ background: "linear-gradient(90deg, hsl(220 60% 25%), hsl(42 95% 52%), hsl(220 60% 25%))" }} />
 
         <main className="flex-1 p-4 md:p-6 overflow-x-hidden relative">
           <div className="animate-fade-up mx-auto max-w-7xl relative z-10" key={activePage}>

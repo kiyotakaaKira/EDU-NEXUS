@@ -39,7 +39,7 @@ export function NotificationCenter() {
     <Popover>
       <PopoverTrigger asChild>
         <button className="relative rounded-full p-2.5 text-muted-foreground hover:text-foreground hover:bg-surface-warm transition-all outline-none">
-          <Bell className={`h-5 w-5 ${unreadCount > 0 ? "animate-sentinel-beat text-foreground" : ""}`} />
+          <Bell className={`h-5 w-5 ${unreadCount > 0 ? "animate-pulse text-accent" : ""}`} />
           {unreadCount > 0 && (
             <span className="absolute top-1.5 right-1.5 notif-dot ring-2 ring-background border border-background"></span>
           )}

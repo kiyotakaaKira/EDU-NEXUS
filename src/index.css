@@ -17,8 +17,8 @@
     --popover: 20 12% 11%;
     --popover-foreground: 35 25% 93%;
 
-    /* Primary — rich CIT maroon */
-    --primary: 0 85% 28%;
+    /* Primary — rich CIT blue-maroon */
+    --primary: 220 60% 25%;
     --primary-foreground: 35 25% 93%;
 
     --secondary: 20 10% 16%;
@@ -36,16 +36,16 @@
 
     --border: 20 10% 18%;
     --input: 20 10% 18%;
-    --ring: 0 85% 28%;
+    --ring: 220 60% 25%;
     --radius: 0.75rem;
 
     /* Brand colors */
     --gold: 42 95% 52%;
     --gold-light: 45 100% 65%;
     --gold-foreground: 20 15% 8%;
-    --maroon: 0 85% 28%;
-    --maroon-light: 0 75% 38%;
-    --maroon-warm: 5 80% 32%;
+    --maroon: 220 60% 25%;
+    --maroon-light: 220 55% 35%;
+    --maroon-warm: 220 58% 30%;
 
     /* Surfaces — warm tones */
     --surface: 20 10% 13%;
@@ -55,20 +55,20 @@
     /* Sidebar — slightly warmer than bg */
     --sidebar-background: 20 18% 7%;
     --sidebar-foreground: 35 20% 82%;
-    --sidebar-primary: 0 85% 28%;
+    --sidebar-primary: 220 60% 25%;
     --sidebar-primary-foreground: 35 25% 93%;
     --sidebar-accent: 20 12% 12%;
     --sidebar-accent-foreground: 42 95% 52%;
     --sidebar-border: 20 10% 14%;
-    --sidebar-ring: 0 85% 28%;
+    --sidebar-ring: 220 60% 25%;
 
-    /* Status colors — slightly warmer/richer */
+    /* Status colors */
     --chart-safe: 145 60% 42%;
     --chart-critical: 0 70% 52%;
     --chart-observation: 42 95% 52%;
     --chart-at-risk: 28 90% 52%;
 
-    /* New: accent colors for college feel */
+    /* Accent colors */
     --teal: 175 60% 40%;
     --purple-soft: 260 40% 55%;
     --rose-warm: 350 70% 55%;
@@ -82,7 +82,7 @@
     font-family: 'Plus Jakarta Sans', sans-serif;
     @apply bg-background text-foreground antialiased;
     background-image:
-      radial-gradient(ellipse 80% 50% at 20% -10%, hsl(0 85% 28% / 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 50% at 20% -10%, hsl(220 60% 25% / 0.14) 0%, transparent 60%),
       radial-gradient(ellipse 60% 40% at 80% 110%, hsl(42 95% 52% / 0.07) 0%, transparent 60%);
     background-attachment: fixed;
   }
@@ -112,7 +112,7 @@
     box-shadow: 0 0 24px hsl(42 95% 52% / 0.2), 0 0 48px hsl(42 95% 52% / 0.08);
   }
   .glow-maroon {
-    box-shadow: 0 0 24px hsl(0 85% 28% / 0.25), 0 0 48px hsl(0 85% 28% / 0.1);
+    box-shadow: 0 0 24px hsl(220 60% 25% / 0.35), 0 0 48px hsl(220 60% 25% / 0.15);
   }
   .glow-safe {
     box-shadow: 0 0 20px hsl(145 60% 42% / 0.2);
@@ -123,7 +123,7 @@
 
   /* ---- GRADIENTS ---- */
   .gradient-maroon {
-    background: linear-gradient(135deg, hsl(0 85% 25%) 0%, hsl(5 80% 35%) 50%, hsl(0 85% 28%) 100%);
+    background: linear-gradient(135deg, hsl(220 60% 18%) 0%, hsl(220 55% 30%) 50%, hsl(220 60% 22%) 100%);
   }
   .gradient-gold {
     background: linear-gradient(135deg, hsl(42 95% 48%) 0%, hsl(45 100% 60%) 100%);
@@ -136,7 +136,7 @@
   }
   .gradient-hero {
     background: linear-gradient(135deg,
-      hsl(0 85% 28% / 0.15) 0%,
+      hsl(220 60% 25% / 0.15) 0%,
       hsl(20 15% 8%) 40%,
       hsl(42 95% 52% / 0.06) 100%);
   }
@@ -181,8 +181,8 @@
     border-color: hsl(42 95% 52% / 0.2);
   }
   .card-critical-glow {
-    border-color: hsl(0 70% 52% / 0.3);
-    box-shadow: 0 0 30px hsl(0 70% 52% / 0.12), inset 0 0 30px hsl(0 70% 52% / 0.03);
+    border-color: hsl(220 60% 35% / 0.4);
+    box-shadow: 0 0 30px hsl(220 60% 25% / 0.15), inset 0 0 30px hsl(220 60% 25% / 0.04);
   }
   .card-safe-glow {
     border-color: hsl(145 60% 42% / 0.3);
@@ -325,7 +325,7 @@
 
   /* ---- SIDEBAR NAV ACTIVE STATE ---- */
   .nav-active {
-    background: linear-gradient(135deg, hsl(0 85% 28% / 0.3) 0%, hsl(0 85% 20% / 0.1) 100%);
+    background: linear-gradient(135deg, hsl(220 60% 25% / 0.3) 0%, hsl(220 60% 20% / 0.1) 100%);
     border-left: 3px solid hsl(42 95% 52%);
     color: hsl(35 25% 93%);
     padding-left: calc(0.75rem - 3px);
@@ -349,19 +349,19 @@
 
   /* ---- BUTTON STYLES ---- */
   .btn-primary {
-    background: linear-gradient(135deg, hsl(0 85% 25%) 0%, hsl(5 80% 35%) 100%);
+    background: linear-gradient(135deg, hsl(220 60% 18%) 0%, hsl(220 55% 28%) 100%);
     color: hsl(42 95% 52%);
-    border: 1px solid hsl(0 85% 35% / 0.5);
+    border: 1px solid hsl(220 55% 35% / 0.5);
     border-radius: 10px;
     font-weight: 600;
     position: relative;
     overflow: hidden;
     transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
-    box-shadow: 0 4px 20px hsl(0 85% 28% / 0.35);
+    box-shadow: 0 4px 20px hsl(220 60% 25% / 0.4);
   }
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 28px hsl(0 85% 28% / 0.5);
+    box-shadow: 0 8px 28px hsl(220 60% 25% / 0.55);
   }
   .btn-primary:active { transform: translateY(0); }
 
@@ -452,9 +452,9 @@
   /* ---- COLLEGE VIBE: warm mesh background for hero sections ---- */
   .hero-mesh {
     background:
-      radial-gradient(ellipse 60% 60% at 10% 20%, hsl(0 85% 28% / 0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 60% at 10% 20%, hsl(220 60% 25% / 0.18) 0%, transparent 70%),
       radial-gradient(ellipse 40% 40% at 90% 80%, hsl(42 95% 52% / 0.08) 0%, transparent 70%),
-      radial-gradient(ellipse 50% 30% at 50% 0%, hsl(5 50% 20% / 0.1) 0%, transparent 60%);
+      radial-gradient(ellipse 50% 30% at 50% 0%, hsl(220 40% 20% / 0.1) 0%, transparent 60%);
   }
 
   /* ---- GRID DOT PATTERN ---- */
@@ -482,4 +482,20 @@
     padding: 3px 10px;
     font-family: 'JetBrains Mono', monospace;
   }
+}
+
+[data-radix-dialog-content] {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+}
+[data-radix-dialog-overlay] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9998 !important;
 }

@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { students } from "@/data/students";
 import { analyzeStudent } from "@/utils/sentinelAI";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, CartesianGrid } from "recharts";
-import { Search, Download, AlertCircle, ChevronDown, ChevronUp, BookOpen, Send, Shield, Sparkles, UserCheck, Activity, BrainCircuit } from "lucide-react";
+import { Search, Download, Plus, AlertCircle, ChevronDown, ChevronUp, BookOpen, Send, Shield, Sparkles, UserCheck, Activity, BrainCircuit } from "lucide-react";
 import { toast } from "sonner";
 import { askClaude } from "@/utils/claudeAI";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ export default function TeacherView({ activePage = "dashboard" }: { activePage?:
   const [activeTab, setActiveTab] = useState("All Students");
   const [search, setSearch] = useState("");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [fabOpen, setFabOpen] = useState(false);
 
   const [avgModalOpen, setAvgModalOpen] = useState(false);
   const [belowPassModalOpen, setBelowPassModalOpen] = useState(false);
@@ -20,8 +21,8 @@ export default function TeacherView({ activePage = "dashboard" }: { activePage?:
   const [interventionModalOpen, setInterventionModalOpen] = useState(false);
 
   useEffect(() => {
-    if (activePage === "at-risk") setActiveTab("Below Pass");
-    else if (activePage === "marks" || activePage === "dashboard") setActiveTab("All Students");
+    if (activePage === "atrisk") setActiveTab("Below Pass");
+    else if (activePage === "overview") setActiveTab("All Students");
   }, [activePage]);
 
   // Filter out behavioral data for Teacher view
@@ -99,7 +100,7 @@ export default function TeacherView({ activePage = "dashboard" }: { activePage?:
     <div className="space-y-6">
       
       {/* Header & Stats - Show on all except chat */}
-      {activePage !== "chat" && (
+      {activePage !== "chat" && activePage !== "markentry" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up">
           {[
             { id: "avg", label: "Class Avg IAT", val: `${avgIat}/100`, color: "text-blue-400" },
@@ -127,7 +128,7 @@ export default function TeacherView({ activePage = "dashboard" }: { activePage?:
         <div className="lg:col-span-3 space-y-6">
           
           {/* Class Health Summary & Distribution (Dashboard Only) */}
-          {activePage === "dashboard" && (
+          {activePage === "overview" && (
             <div className="grid md:grid-cols-2 gap-6 animate-fade-up z-10">
               <div className="card-warm p-6 card-glow-hover border-border/50">
                 <h3 className="text-[13px] font-bold section-label tracking-widest mb-3">Class Health Summary</h3>
@@ -156,7 +157,7 @@ export default function TeacherView({ activePage = "dashboard" }: { activePage?:
           
           <div className="card-warm p-6 card-glow-hover border-border/50">
             <h3 className="text-[13px] font-bold section-label tracking-widest mb-5">IAT Score Distribution</h3>
-            <div className="h-40">
+            <div className="w-full h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={distData}>
                   <XAxis dataKey="range" tick={{ fill: "#888", fontSize: 11, fontFamily: "var(--font-mono)" }} axisLine={false} tickLine={false} />
@@ -172,7 +173,7 @@ export default function TeacherView({ activePage = "dashboard" }: { activePage?:
       )}
 
       {/* Table Section (Marks, At-Risk, Dashboard) */}
-      {activePage !== "chat" && (
+      {(activePage === "overview" || activePage === "atrisk") && (
         <div className="card-warm overflow-hidden animate-fade-up shadow-xl border-border/50 relative z-10">
           <div className="p-4 border-b border-border/50 flex flex-col sm:flex-row gap-5 justify-between items-center bg-surface-warm/50">
               <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
@@ -315,7 +316,107 @@ export default function TeacherView({ activePage = "dashboard" }: { activePage?:
             </div>
           </div>
         )}
-        </div>
+
+        {/* Mark Entry Page */}
+        {activePage === "markentry" && (
+          <div className="space-y-6 animate-fade-up">
+            <div className="card-warm p-6 border-border/50 shadow-xl">
+              <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-5">
+                <div className="h-10 w-10 rounded-xl gradient-maroon flex items-center justify-center glow-maroon shadow-md">
+                  <BookOpen className="h-5 w-5 text-accent" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold font-syne tracking-wide gradient-text-gold">Mark Entry Desk</h2>
+                  <p className="text-[11px] section-label mt-0.5">Enter IAT / Model / Assignment marks per student</p>
+                </div>
+              </div>
+
+              {/* Exam type selector */}
+              <div className="flex gap-3 mb-6 flex-wrap">
+                {["IAT-1", "IAT-2", "Model Exam", "Assignment"].map(exam => (
+                  <button key={exam} className="px-4 py-2 rounded-lg text-xs font-bold transition-all btn-ghost border border-border/50 hover:btn-primary hover:border-accent/30">
+                    {exam}
+                  </button>
+                ))}
+                <span className="ml-auto text-[11px] text-muted-foreground font-bold my-auto section-label">Max Marks: 50</span>
+              </div>
+
+              {/* Marks Table */}
+              <div className="overflow-x-auto rounded-xl border border-border/50">
+                <table className="w-full text-sm border-collapse">
+                  <thead className="bg-surface-warm/50 border-b border-border/50">
+                    <tr>
+                      <th className="text-left p-4 text-[10px] font-bold section-label tracking-widest">Student ID</th>
+                      <th className="text-left p-4 text-[10px] font-bold section-label tracking-widest">Name</th>
+                      <th className="text-center p-4 text-[10px] font-bold section-label tracking-widest">IAT-1 (/50)</th>
+                      <th className="text-center p-4 text-[10px] font-bold section-label tracking-widest">IAT-2 (/50)</th>
+                      <th className="text-center p-4 text-[10px] font-bold section-label tracking-widest">Model (/100)</th>
+                      <th className="text-center p-4 text-[10px] font-bold section-label tracking-widest">Status</th>
+                      <th className="text-center p-4 text-[10px] font-bold section-label tracking-widest">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {classStudents.map((s, i) => {
+                      const total = s.iat1 + s.iat2;
+                      const status = total < 50 ? "Below Pass" : total < 70 ? "Average" : "Good";
+                      const statusColor = total < 50 ? "text-chart-critical" : total < 70 ? "text-chart-observation" : "text-chart-safe";
+                      return (
+                        <tr key={s.id} className="hover:bg-surface-hover transition-colors group" style={{ animationDelay: `${i * 0.03}s` }}>
+                          <td className="p-4 font-mono text-[11px] font-bold section-label">{s.id}</td>
+                          <td className="p-4 font-bold text-[13px] font-syne tracking-wide">{s.name}</td>
+                          <td className="p-4 text-center">
+                            <input
+                              type="number"
+                              defaultValue={s.iat1}
+                              min={0} max={50}
+                              className="w-16 text-center bg-surface-warm/50 border border-border/50 rounded-lg px-2 py-1.5 text-[13px] font-mono font-bold focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all"
+                            />
+                          </td>
+                          <td className="p-4 text-center">
+                            <input
+                              type="number"
+                              defaultValue={s.iat2}
+                              min={0} max={50}
+                              className="w-16 text-center bg-surface-warm/50 border border-border/50 rounded-lg px-2 py-1.5 text-[13px] font-mono font-bold focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all"
+                            />
+                          </td>
+                          <td className="p-4 text-center">
+                            <input
+                              type="number"
+                              defaultValue={s.model}
+                              min={0} max={100}
+                              className="w-20 text-center bg-surface-warm/50 border border-border/50 rounded-lg px-2 py-1.5 text-[13px] font-mono font-bold focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all"
+                            />
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className={`text-[11px] font-bold ${statusColor}`}>{status}</span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => toast.success(`Marks saved for ${s.name}`)}
+                              className="text-[10px] font-bold btn-ghost px-3 py-1.5 rounded-lg border border-accent/30 text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100 shadow-sm"
+                            >
+                              Save
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-border/50">
+                <button onClick={() => toast("Marks exported to CSV")} className="btn-ghost border border-border/50 text-[11px] font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-sm hover:border-accent/30">
+                  <Download className="h-4 w-4" /> Export CSV
+                </button>
+                <button onClick={() => toast.success("All marks submitted to Sentinel")} className="btn-primary text-[11px] font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-md glow-maroon">
+                  Submit All Marks
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Teacher's Sentinel Assistant (Chat View) */}
         {activePage === "chat" && (
@@ -407,6 +508,28 @@ export default function TeacherView({ activePage = "dashboard" }: { activePage?:
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* FLOATING ACTION BUTTON */}
+      <div className="fixed bottom-6 right-6 z-50">
+        {fabOpen && (
+           <>
+            <div className="fixed inset-0 bg-background/20 backdrop-blur-sm z-40" onClick={() => setFabOpen(false)} />
+            <div className="absolute bottom-16 right-0 z-50 flex flex-col gap-3 mb-2 items-end animate-in slide-in-from-bottom-5">
+              <button onClick={() => { toast.success("Class report exported to Excel"); setFabOpen(false); }} className="flex items-center gap-3 bg-card border border-blue-500/30 text-blue-500 hover:bg-blue-500/10 px-4 py-2.5 rounded-full shadow-lg transition-colors group whitespace-nowrap">
+                <span className="text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">Download Class Report</span>
+                <Download className="h-5 w-5 shrink-0" />
+              </button>
+            </div>
+           </>
+        )}
+        <button 
+          onClick={() => setFabOpen(!fabOpen)}
+          className={`h-14 w-14 rounded-full gradient-maroon text-accent flex items-center justify-center shadow-[0_0_20px_rgba(128,0,0,0.5)] transition-transform duration-300 relative z-50 ${fabOpen ? "rotate-45" : "hover:scale-105"}`}
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      </div>
+
     </div>
   );
 }

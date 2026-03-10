@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { students } from "@/data/students";
 import { analyzeStudent } from "@/utils/sentinelAI";
-import { Shield, Brain, Cpu, Send, CheckCircle, Clock, AlertTriangle, BookOpen, Plus, Search, Filter, Phone, Mail, MoreVertical, X } from "lucide-react";
+import { Shield, Brain, Cpu, Send, CheckCircle, Clock, AlertTriangle, BookOpen, Plus, Search, Filter, Phone, Mail, MoreVertical, X, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -15,8 +15,7 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
   const [selectedStudent, setSelectedStudent] = useState(students[0]);
 
   useEffect(() => {
-    if (activePage === "interventions") setActiveTab("Intervention Active");
-    else if (activePage === "dashboard") setActiveTab("All Mentees");
+    setActiveTab("All Mentees");
   }, [activePage]);
   const [searchQuery, setSearchQuery] = useState("");
   const [fabOpen, setFabOpen] = useState(false);
@@ -109,7 +108,7 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
         
         {/* Left Side: Mentees & Oracle */}
         <div className="lg:col-span-3 space-y-6">
-          {(activePage === "dashboard" || activePage === "interventions" || activePage === "peer") && (
+          {activePage === "mentees" && (
           <div className="card-warm overflow-hidden animate-fade-up shadow-xl border-border/50 z-10 relative">
             <div className="border-b border-border/50 p-4 bg-surface-warm/50 flex flex-col gap-5">
               <div className="flex gap-2 overflow-x-auto hide-scrollbar">
@@ -334,7 +333,7 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
         )}
 
         {/* Intervention Log (Interventions Page only) */}
-        {activePage === "interventions" && (
+        {activePage === "plans" && (
         <div className="lg:col-span-3 space-y-6 animate-fade-up">
           <div className="card-warm p-6 card-glow-hover">
             <h3 className="text-xl font-bold font-syne mb-6 flex items-center gap-3 tracking-wide"><Clock className="h-6 w-6 text-accent" /> Recent Interventions</h3>
@@ -357,6 +356,76 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
           </div>
         </div>
         )}
+
+        {/* Peer Bridge */}
+        {activePage === "peerbridge" && (
+        <div className="lg:col-span-3 space-y-6 animate-fade-up">
+          <div className="card-warm p-6 border-border/50 shadow-xl">
+            <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-5">
+              <div className="h-10 w-10 rounded-xl gradient-maroon flex items-center justify-center glow-maroon shadow-md">
+                <Users className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold font-syne tracking-wide gradient-text-gold">Peer Bridge</h2>
+                <p className="text-[11px] section-label mt-0.5">AI-suggested peer pairings for collaborative learning</p>
+              </div>
+            </div>
+
+            {/* Summary KPIs */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {[
+                { label: "Active Pairs", val: "8", color: "text-chart-safe" },
+                { label: "Study Sessions", val: "14", color: "text-blue-400" },
+                { label: "Avg Improvement", val: "+12%", color: "text-chart-observation" },
+              ].map((k, i) => (
+                <div key={i} className="p-4 rounded-xl bg-surface-warm border border-border/50 text-center">
+                  <p className="text-[10px] section-label font-bold mb-1">{k.label}</p>
+                  <p className={`text-3xl font-mono font-bold ${k.color}`}>{k.val}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Peer Pairings */}
+            <h3 className="text-[11px] font-bold section-label tracking-widest mb-4">Sentinel-Suggested Peer Pairs</h3>
+            <div className="space-y-3">
+              {[
+                { mentor: "Sanjay R.", mentee: "Priya D.", reason: "Strong IAT performer paired with below-pass student. Same department.", tag: "Academic Support", tagColor: "text-blue-400 bg-blue-400/10 border-blue-400/20" },
+                { mentor: "Karthik S.", mentee: "Arun Kumar", reason: "Top attendance with peer who has 68.5%. Can motivate regularity.", tag: "Attendance Boost", tagColor: "text-chart-safe bg-chart-safe/10 border-chart-safe/20" },
+                { mentor: "Rahul G.", mentee: "Meera J.", reason: "High model exam scorer paired with low model exam achiever.", tag: "Exam Strategy", tagColor: "text-chart-observation bg-chart-observation/10 border-chart-observation/20" },
+                { mentor: "Deepak V.", mentee: "Anitha B.", reason: "Both at-risk — mutual accountability pair with weekly check-ins.", tag: "Accountability", tagColor: "text-purple-400 bg-purple-400/10 border-purple-400/20" },
+              ].map((pair, i) => (
+                <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-surface-warm/50 border border-border/50 hover:border-accent/30 transition-all">
+                  <div className="flex items-center gap-2 min-w-[200px]">
+                    <div className="h-8 w-8 rounded-full gradient-maroon flex items-center justify-center shadow-sm flex-shrink-0">
+                      <span className="text-[10px] font-bold text-accent">{pair.mentor.split(" ")[0][0]}{pair.mentor.split(" ")[1]?.[0]}</span>
+                    </div>
+                    <div>
+                      <p className="text-[12px] font-bold font-syne">{pair.mentor}</p>
+                      <p className="text-[9px] section-label">Peer Mentor</p>
+                    </div>
+                    <div className="mx-2 text-accent/50 font-bold">→</div>
+                    <div>
+                      <p className="text-[12px] font-bold font-syne">{pair.mentee}</p>
+                      <p className="text-[9px] section-label">Peer Mentee</p>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{pair.reason}</p>
+                  </div>
+                  <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full border flex-shrink-0 ${pair.tagColor}`}>{pair.tag}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-border/50 flex justify-end gap-3">
+              <button onClick={() => toast.success("Pair groups notified via email!")} className="btn-primary text-[11px] font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-md glow-maroon">
+                Notify All Pairs
+              </button>
+            </div>
+          </div>
+        </div>
+        )}
+
 
       </div>
 
