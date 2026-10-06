@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Bell, Check, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "sonner";
+import { getNotificationsAPI, getToken } from "@/utils/api";
+import { useEffect } from "react";
 
 type NotificationType = "critical" | "intervention" | "alert" | "info" | "success";
 
@@ -23,6 +26,20 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
 export function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
 
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const data = await getNotificationsAPI(getToken());
+        if (Array.isArray(data) && data.length > 0) {
+          setNotifications(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications", err);
+      }
+    };
+    fetchNotifs();
+  }, []);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAllRead = () => {
@@ -33,6 +50,13 @@ export function NotificationCenter() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n))
     );
+  };
+
+  const markResolved = (id: number) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, type: "success", message: `Resolved: ${n.message}`, read: true } : n))
+    );
+    toast.success("Issue marked as resolved!");
   };
 
   return (
@@ -86,13 +110,26 @@ export function NotificationCenter() {
                     n.type === "success" ? "bg-green-500" :
                     "bg-blue-500"
                   }`} />
-                  <div className="pl-2">
+                  <div className="flex flex-col flex-1 pl-2 text-left w-full">
                     <p className={`text-sm leading-snug ${!n.read ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
                       {n.message}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1.5 font-mono">
-                      {n.time}
-                    </p>
+                    <div className="flex items-center justify-between mt-1.5 gap-2 w-full">
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {n.time}
+                      </p>
+                      {(n.type === "critical" || n.type === "intervention") && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            markResolved(n.id); 
+                          }}
+                          className="text-[10px] font-bold text-accent hover:text-white bg-accent/10 hover:bg-accent/40 px-2 py-0.5 rounded transition-colors whitespace-nowrap"
+                        >
+                          Mark Resolved
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </button>

@@ -1,0 +1,101 @@
+code_module,code_presentation,id_student,gender,region,highest_education,imd_band,age_band,num_of_prev_attempts,studied_credits,disability,final_result
+AAA,2013J,10001,M,London Region,A Level or Equivalent,50-60%,35-55,2,60,N,Withdrawn
+BBB,2013J,10002,F,London Region,A Level or Equivalent,50-60%,0-35,0,120,Y,Pass
+AAA,2013J,10003,F,East Anglian Region,HE Qualification,90-100%,35-55,0,90,N,Pass
+AAA,2013J,10004,F,East Anglian Region,A Level or Equivalent,90-100%,0-35,0,120,N,Pass
+AAA,2013J,10005,F,Scotland,HE Qualification,50-60%,35-55,1,120,Y,Pass
+BBB,2013J,10006,F,East Anglian Region,A Level or Equivalent,50-60%,35-55,0,60,N,Pass
+AAA,2013J,10007,F,London Region,HE Qualification,20-30%,35-55,0,60,N,Fail
+AAA,2013J,10008,F,London Region,HE Qualification,50-60%,35-55,0,60,N,Fail
+AAA,2013J,10009,F,East Anglian Region,HE Qualification,20-30%,0-35,0,120,N,Pass
+BBB,2013J,10010,M,London Region,A Level or Equivalent,20-30%,35-55,1,90,N,Pass
+AAA,2013J,10011,F,London Region,A Level or Equivalent,20-30%,35-55,1,60,N,Pass
+AAA,2013J,10012,M,East Anglian Region,HE Qualification,20-30%,35-55,0,60,N,Withdrawn
+AAA,2013J,10013,F,East Anglian Region,A Level or Equivalent,20-30%,0-35,0,120,Y,Pass
+AAA,2013J,10014,F,London Region,HE Qualification,90-100%,35-55,1,60,N,Fail
+BBB,2013J,10015,M,London Region,HE Qualification,50-60%,0-35,0,90,N,Withdrawn
+AAA,2013J,10016,F,London Region,A Level or Equivalent,20-30%,35-55,0,90,N,Fail
+BBB,2013J,10017,M,Scotland,A Level or Equivalent,50-60%,0-35,0,60,N,Withdrawn
+BBB,2013J,10018,F,Scotland,HE Qualification,50-60%,0-35,0,60,N,Pass
+BBB,2013J,10019,F,Scotland,A Level or Equivalent,20-30%,35-55,1,120,N,Distinction
+AAA,2013J,10020,M,East Anglian Region,A Level or Equivalent,90-100%,0-35,1,90,N,Fail
+BBB,2013J,10021,F,Scotland,HE Qualification,20-30%,35-55,1,90,N,Distinction
+AAA,2013J,10022,M,East Anglian Region,HE Qualification,90-100%,35-55,0,60,N,Pass
+BBB,2013J,10023,F,East Anglian Region,A Level or Equivalent,50-60%,35-55,1,120,N,Pass
+BBB,2013J,10024,M,Scotland,HE Qualification,90-100%,0-35,0,90,N,Pass
+BBB,2013J,10025,M,Scotland,HE Qualification,90-100%,0-35,0,90,N,Fail
+BBB,2013J,10026,F,Scotland,A Level or Equivalent,90-100%,35-55,0,120,N,Distinction
+BBB,2013J,10027,F,London Region,HE Qualification,50-60%,35-55,1,120,Y,Distinction
+BBB,2013J,10028,M,Scotland,HE Qualification,50-60%,0-35,1,90,N,Pass
+BBB,2013J,10029,F,London Region,A Level or Equivalent,90-100%,35-55,0,90,N,Withdrawn
+BBB,2013J,10030,F,East Anglian Region,A Level or Equivalent,90-100%,35-55,1,120,N,Pass
+AAA,2013J,10031,F,London Region,HE Qualification,20-30%,35-55,0,90,N,Pass
+AAA,2013J,10032,M,Scotland,HE Qualification,90-100%,0-35,0,60,N,Pass
+BBB,2013J,10033,M,East Anglian Region,A Level or Equivalent,20-30%,0-35,0,60,N,Distinction
+BBB,2013J,10034,M,East Anglian Region,A Level or Equivalent,90-100%,0-35,0,120,N,Pass
+BBB,2013J,10035,M,East Anglian Region,A Level or Equivalent,20-30%,35-55,0,120,N,Fail
+AAA,2013J,10036,M,London Region,A Level or Equivalent,50-60%,35-55,0,120,N,Distinction
+BBB,2013J,10037,M,Scotland,HE Qualification,90-100%,35-55,0,60,N,Pass
+AAA,2013J,10038,M,East Anglian Region,A Level or Equivalent,90-100%,0-35,0,90,N,Fail
+AAA,2013J,10039,M,East Anglian Region,A Level or Equivalent,90-100%,35-55,0,60,N,Pass
+AAA,2013J,10040,M,East Anglian Region,HE Qualification,90-100%,35-55,0,90,N,Pass
+AAA,2013J,10041,F,London Region,A Level or Equivalent,20-30%,35-55,0,60,N,Pass
+AAA,2013J,10042,M,London Region,HE Qualification,90-100%,35-55,0,90,N,Pass
+BBB,2013J,10043,F,Scotland,A Level or Equivalent,50-60%,0-35,0,60,N,Fail
+BBB,2013J,10044,F,London Region,A Level or Equivalent,50-60%,0-35,0,120,N,Pass
+BBB,2013J,10045,F,East Anglian Region,A Level or Equivalent,90-100%,35-55,0,60,N,Fail
+BBB,2013J,10046,M,Scotland,HE Qualification,50-60%,0-35,0,90,N,Distinction
+BBB,2013J,10047,M,East Anglian Region,HE Qualification,90-100%,0-35,1,60,Y,Fail
+AAA,2013J,10048,M,East Anglian Region,A Level or Equivalent,90-100%,35-55,0,60,N,Fail
+BBB,2013J,10049,M,London Region,HE Qualification,50-60%,35-55,0,60,N,Fail
+BBB,2013J,10050,F,Scotland,HE Qualification,90-100%,0-35,2,120,N,Pass
+AAA,2013J,10051,M,London Region,HE Qualification,50-60%,35-55,0,60,N,Pass
+BBB,2013J,10052,M,London Region,HE Qualification,20-30%,0-35,0,120,N,Withdrawn
+AAA,2013J,10053,M,Scotland,HE Qualification,90-100%,35-55,0,120,N,Fail
+BBB,2013J,10054,M,East Anglian Region,HE Qualification,20-30%,0-35,0,60,N,Pass
+AAA,2013J,10055,M,East Anglian Region,A Level or Equivalent,50-60%,35-55,0,60,N,Pass
+BBB,2013J,10056,F,Scotland,A Level or Equivalent,20-30%,0-35,0,60,Y,Pass
+BBB,2013J,10057,M,East Anglian Region,HE Qualification,20-30%,0-35,0,90,N,Withdrawn
+AAA,2013J,10058,F,Scotland,A Level or Equivalent,50-60%,0-35,0,60,Y,Pass
+AAA,2013J,10059,M,Scotland,A Level or Equivalent,20-30%,35-55,1,120,N,Pass
+AAA,2013J,10060,F,London Region,A Level or Equivalent,20-30%,0-35,0,60,N,Pass
+AAA,2013J,10061,M,Scotland,A Level or Equivalent,50-60%,0-35,0,90,N,Pass
+AAA,2013J,10062,M,London Region,HE Qualification,20-30%,35-55,0,60,N,Withdrawn
+AAA,2013J,10063,F,East Anglian Region,A Level or Equivalent,50-60%,35-55,0,90,N,Pass
+AAA,2013J,10064,F,East Anglian Region,A Level or Equivalent,20-30%,0-35,0,90,N,Distinction
+AAA,2013J,10065,F,East Anglian Region,HE Qualification,50-60%,0-35,0,60,N,Pass
+BBB,2013J,10066,M,East Anglian Region,HE Qualification,50-60%,35-55,0,120,Y,Distinction
+BBB,2013J,10067,F,London Region,A Level or Equivalent,20-30%,35-55,0,90,N,Pass
+AAA,2013J,10068,M,East Anglian Region,A Level or Equivalent,20-30%,35-55,0,60,N,Pass
+BBB,2013J,10069,M,Scotland,A Level or Equivalent,20-30%,35-55,0,60,N,Fail
+BBB,2013J,10070,F,Scotland,A Level or Equivalent,90-100%,35-55,0,120,N,Withdrawn
+BBB,2013J,10071,F,Scotland,A Level or Equivalent,90-100%,0-35,0,90,N,Withdrawn
+BBB,2013J,10072,M,London Region,A Level or Equivalent,90-100%,35-55,2,90,N,Fail
+AAA,2013J,10073,M,East Anglian Region,HE Qualification,50-60%,0-35,1,60,N,Withdrawn
+BBB,2013J,10074,F,East Anglian Region,A Level or Equivalent,20-30%,0-35,0,60,N,Pass
+AAA,2013J,10075,F,East Anglian Region,A Level or Equivalent,50-60%,0-35,2,120,N,Withdrawn
+BBB,2013J,10076,F,London Region,HE Qualification,90-100%,35-55,0,120,N,Pass
+BBB,2013J,10077,M,Scotland,HE Qualification,20-30%,0-35,0,90,N,Distinction
+BBB,2013J,10078,M,Scotland,HE Qualification,50-60%,0-35,0,90,N,Distinction
+AAA,2013J,10079,M,East Anglian Region,HE Qualification,20-30%,35-55,0,60,N,Distinction
+BBB,2013J,10080,M,Scotland,A Level or Equivalent,50-60%,0-35,0,90,N,Fail
+AAA,2013J,10081,M,Scotland,A Level or Equivalent,20-30%,0-35,0,120,N,Pass
+BBB,2013J,10082,M,London Region,A Level or Equivalent,90-100%,35-55,0,120,N,Distinction
+AAA,2013J,10083,F,London Region,A Level or Equivalent,90-100%,0-35,0,60,N,Pass
+BBB,2013J,10084,M,London Region,A Level or Equivalent,20-30%,0-35,1,120,N,Withdrawn
+AAA,2013J,10085,M,London Region,A Level or Equivalent,50-60%,0-35,0,120,N,Distinction
+AAA,2013J,10086,M,East Anglian Region,HE Qualification,90-100%,35-55,0,120,N,Pass
+BBB,2013J,10087,F,London Region,A Level or Equivalent,90-100%,35-55,1,120,N,Distinction
+AAA,2013J,10088,M,Scotland,HE Qualification,90-100%,35-55,2,60,N,Fail
+BBB,2013J,10089,M,East Anglian Region,HE Qualification,20-30%,0-35,2,60,N,Distinction
+BBB,2013J,10090,F,Scotland,A Level or Equivalent,20-30%,0-35,0,90,N,Distinction
+BBB,2013J,10091,M,Scotland,HE Qualification,50-60%,35-55,0,120,Y,Pass
+BBB,2013J,10092,M,Scotland,A Level or Equivalent,50-60%,0-35,0,90,N,Fail
+BBB,2013J,10093,M,London Region,HE Qualification,50-60%,0-35,0,60,N,Withdrawn
+BBB,2013J,10094,M,London Region,A Level or Equivalent,20-30%,35-55,2,60,N,Pass
+BBB,2013J,10095,M,East Anglian Region,HE Qualification,20-30%,35-55,0,60,N,Fail
+BBB,2013J,10096,F,East Anglian Region,A Level or Equivalent,50-60%,0-35,1,60,N,Pass
+BBB,2013J,10097,F,London Region,A Level or Equivalent,50-60%,0-35,1,60,N,Pass
+BBB,2013J,10098,F,Scotland,A Level or Equivalent,20-30%,0-35,1,60,N,Fail
+BBB,2013J,10099,M,East Anglian Region,A Level or Equivalent,50-60%,35-55,0,60,N,Fail
+AAA,2013J,10100,M,London Region,A Level or Equivalent,90-100%,35-55,0,120,N,Pass

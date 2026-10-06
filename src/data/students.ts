@@ -167,7 +167,7 @@ export function generateStudents(): Student[] {
 
   const departments = ["AI & DS","AI & DS","AI & DS","CSE","CSE","CSE","ECE","ECE","ECE","MECH","MECH","MECH","AI & DS","CSE","ECE"];
 
-  for (let i = 10; i < 60; i++) {
+  for (let i = 10; i < 150; i++) {
     const id = `CIT${String(i + 1).padStart(2, "0")}`;
     const name = `${firstNames[i % firstNames.length]} ${lastInitials[Math.floor(rand() * lastInitials.length)]}`;
     const dept = departments[i % departments.length];
@@ -228,10 +228,10 @@ export const weeklyRiskTrend = Array.from({ length: 8 }, (_, weekIdx) => {
 });
 
 export const conceptVideos = [
-  { title: "Neural Networks Fundamentals", duration: "8 min", topic: "Deep Learning" },
-  { title: "Linear Regression Recap", duration: "5 min", topic: "ML Basics" },
-  { title: "Probability Distributions", duration: "6 min", topic: "Statistics" },
-  { title: "Python Data Structures", duration: "7 min", topic: "Programming" },
-  { title: "Gradient Descent Explained", duration: "10 min", topic: "Optimization" },
-  { title: "SQL Joins Masterclass", duration: "9 min", topic: "Database" },
+  { title: "Data Structures Crash Course", duration: "1.5 hr", topic: "Data Structures", url: "https://www.youtube.com/watch?v=RBSGKlAvoiM", thumbnail: "https://img.youtube.com/vi/RBSGKlAvoiM/maxresdefault.jpg" },
+  { title: "Algorithms Basics", duration: "2 hr", topic: "Algorithms", url: "https://www.youtube.com/watch?v=0IAPZzGSbME", thumbnail: "https://img.youtube.com/vi/0IAPZzGSbME/maxresdefault.jpg" },
+  { title: "Automata Theory Introduction", duration: "1 hr", topic: "Automata", url: "https://www.youtube.com/watch?v=EtYqE7ZktX8", thumbnail: "https://img.youtube.com/vi/EtYqE7ZktX8/maxresdefault.jpg" },
+  { title: "IoT Architecture Explained", duration: "45 min", topic: "IoT", url: "https://www.youtube.com/watch?v=UrHXOA3_Jko", thumbnail: "https://img.youtube.com/vi/UrHXOA3_Jko/maxresdefault.jpg" },
+  { title: "Python for Beginners", duration: "1.2 hr", topic: "Python", url: "https://www.youtube.com/watch?v=t8pPdKYpowI", thumbnail: "https://img.youtube.com/vi/t8pPdKYpowI/maxresdefault.jpg" },
+  { title: "Machine Learning Full Course", duration: "3 hr", topic: "Machine Learning", url: "https://www.youtube.com/watch?v=GwIo3gDZCVQ", thumbnail: "https://img.youtube.com/vi/GwIo3gDZCVQ/maxresdefault.jpg" },
 ];

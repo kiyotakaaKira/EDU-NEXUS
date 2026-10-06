@@ -7,6 +7,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContaine
 import { askClaude } from "@/utils/claudeAI";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AIMessage, TypingIndicator } from "@/components/ui/AIMessage";
 
 const STATUS_COLORS: Record<string, string> = {
   Safe: "#22c55e",
@@ -215,6 +216,11 @@ export default function ChairmanView({ activePage = "dashboard" }: { activePage?
                       margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
                       barCategoryGap="20%"
                       barGap={2}
+                      onClick={(state) => {
+                        if (state && state.activePayload && state.activePayload.length) {
+                           toast.success(`${state.activePayload[0].payload.dept} Department drill-down requested`);
+                        }
+                      }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.5} />
                       <XAxis dataKey="dept" tick={{ fill: "#aaa", fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: "bold" }} axisLine={false} tickLine={false} />
@@ -808,49 +814,34 @@ export default function ChairmanView({ activePage = "dashboard" }: { activePage?
                 <p className="text-[11px] section-label mt-0.5">Executive Board Intelligence</p>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative z-10 bg-gradient-to-b from-transparent to-surface-warm/30">
+            <div className="flex flex-col overflow-y-auto p-5 scroll-smooth flex-1 hide-scrollbar">
               {messages.map((m, i) => (
-                <div key={i} className={`flex gap-4 max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${m.role === "assistant" ? "bg-card border border-accent/20 text-accent glow-gold" : "gradient-maroon text-muted/80"}`}>
-                    {m.role === "assistant" ? <Brain className="h-4 w-4" /> : <Crown className="h-4 w-4" />}
-                  </div>
-                  <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-sm backdrop-blur-sm ${m.role === "user" ? "bg-accent/10 border border-accent/20 text-foreground rounded-tr-sm" : "bg-card/80 border border-border/50 text-foreground rounded-tl-sm border-l-2 border-l-accent"}`}>
-                    {m.content}
-                  </div>
-                </div>
+                <AIMessage key={i} content={m.content} isUser={m.role === "user"} />
               ))}
-              {isTyping && (
-                <div className="flex gap-4 max-w-[85%]">
-                  <div className="h-8 w-8 rounded-full bg-card border border-accent/20 flex items-center justify-center shrink-0 shadow-sm glow-gold">
-                    <Brain className="h-4 w-4 text-accent animate-pulse" />
-                  </div>
-                  <div className="p-4 rounded-2xl bg-card/80 border border-border/50 rounded-tl-sm flex gap-2 items-center shadow-sm">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
-                </div>
-              )}
+              {isTyping && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 bg-surface/80 backdrop-blur-md border-t border-border/50 z-10">
-              <form onSubmit={handleSendChat} className="flex gap-3 max-w-4xl mx-auto">
-                <input
-                  type="text"
+            <div className="w-full bg-[#1A1C20] border-t border-border/10 p-5 z-10 mt-auto rounded-b-[24px]">
+            <form onSubmit={handleSendChat} className="max-w-5xl mx-auto flex items-center gap-3">
+              <div className="flex-1 flex items-center bg-[#131417] border border-white/5 rounded-full px-5 py-3.5 focus-within:border-accent/40 focus-within:bg-[#1A1C20] transition-colors shadow-inner">
+                <input 
+                  type="text" 
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
+                  disabled={isTyping}
                   placeholder="Ask about strategic goals, SDG alignment, industry readiness, or institution-wide mandates..."
-                  className="flex-1 bg-card/50 border border-border/50 rounded-xl px-5 py-3 text-[13px] focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner"
+                  className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-[14.5px] text-foreground/90 placeholder:text-muted-foreground/40 disabled:opacity-50"
                 />
-                <button
-                  type="submit"
-                  disabled={!chatInput.trim() || isTyping}
-                  className="gradient-maroon text-accent px-5 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-md glow-maroon"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
-            </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={!chatInput.trim() || isTyping} 
+                className="h-[52px] px-8 rounded-full bg-[#1A2544] border border-[#2A3F7A]/60 flex items-center justify-center text-accent hover:bg-[#202D52] hover:border-accent/40 transition-all duration-300 disabled:opacity-40 disabled:hover:bg-[#1A2544] disabled:hover:border-[#2A3F7A]/60 shadow-[0_0_15px_rgba(26,37,68,0.5)] flex-shrink-0"
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            </form>
+          </div>
           </div>
         </div>
       )}

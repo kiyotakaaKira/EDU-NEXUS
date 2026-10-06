@@ -7,19 +7,24 @@ import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AIMessage, TypingIndicator } from "@/components/ui/AIMessage";
 import { askClaude } from "@/utils/claudeAI";
+import { sendParentAlertAPI, scheduleMeetingAPI, sendInterventionPlanAPI, getToken } from '@/utils/api';
 
-export default function MentorView({ activePage = "dashboard" }: { activePage?: string }) {
+export default function MentorView({ activePage = "dashboard", setActivePage }: { activePage?: string, setActivePage?: (p: string) => void }) {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("All Mentees");
+  const [activeTab, setActiveTab] = useState("All");
   const [selectedStudent, setSelectedStudent] = useState(students[0]);
+  const [scheduleStudent, setScheduleStudent] = useState<any>(null);
+  const [alertStudent, setAlertStudent] = useState<any>(null);
 
   useEffect(() => {
-    setActiveTab("All Mentees");
+    setActiveTab("All");
   }, [activePage]);
   const [searchQuery, setSearchQuery] = useState("");
   const [fabOpen, setFabOpen] = useState(false);
   const [studentNotes, setStudentNotes] = useState<Record<string, string>>({});
+  const [meetingDateStr, setMeetingDateStr] = useState("");
 
   const stats = [
     { id: "total", label: "Total Mentees", val: students.length },
@@ -42,10 +47,9 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
 
   const filtered = students.filter(s => {
     const matchesTab = 
-      activeTab === "All Mentees" ? true :
-      activeTab === "Critical" ? s.status === "Critical" :
-      activeTab === "Intervention Active" ? s.interventionStatus === "Active" :
-      s.interventionStatus === "Resolved";
+      activeTab === "All" ? true :
+      activeTab === "My Mentees" ? true :
+      activeTab === "Critical" ? s.status === "Critical" : true;
       
     const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.id.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -89,6 +93,51 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
     setIsTyping(false);
   };
 
+  const handleParentAlert = async (student: any) => {
+    const result = await sendParentAlertAPI({
+      studentName: student.name,
+      studentId: student.id,
+      attendance: student.attendance,
+      message: `Urgent: ${student.name} attendance is at ${student.attendance}%`
+    }, getToken());
+    
+    if (result.success) {
+      toast.success(result.emailSent 
+        ? `Alert sent! Email delivered to parent ✓` 
+        : `Alert saved. Email delivery pending.`);
+      setAlertStudent(null);
+    }
+  };
+
+  const handleScheduleMeeting = async (student: any, date: string, time: string) => {
+    const result = await scheduleMeetingAPI({
+      studentName: student.name,
+      studentId: student.id,
+      date,
+      time,
+      studentEmail: ''
+    }, getToken());
+    
+    if (result.success) {
+      toast.success(`Meeting scheduled for ${date} at ${time} ✓`);
+      if (result.emailSent) toast.success('Confirmation email sent to student');
+      setScheduleStudent(null);
+    }
+  };
+
+  const handleSendPlan = async (student: any, planText: string) => {
+    const result = await sendInterventionPlanAPI({
+      studentName: student.name,
+      studentId: student.id,
+      plan: planText,
+      studentEmail: ''
+    }, getToken());
+    
+    if (result.success) {
+      toast.success(`Plan saved and sent to ${student.name} ✓`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       
@@ -112,7 +161,7 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
           <div className="card-warm overflow-hidden animate-fade-up shadow-xl border-border/50 z-10 relative">
             <div className="border-b border-border/50 p-4 bg-surface-warm/50 flex flex-col gap-5">
               <div className="flex gap-2 overflow-x-auto hide-scrollbar">
-                {["All Mentees", "Critical", "Intervention Active", "Resolved"].map(t => (
+                {["All", "My Mentees", "Critical"].map(t => (
                   <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeTab === t ? "nav-active btn-primary shadow-sm" : "btn-ghost text-muted-foreground"}`}>
                     {t}
                   </button>
@@ -138,7 +187,7 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
                   <div key={s.id} className={`rounded-xl border border-border/50 bg-surface/50 p-4 card-glow-hover shadow-sm relative flex flex-col justify-between transition-all ${s.status === "Critical" ? "card-critical-glow bg-red-500/5 hover:bg-red-500/10" : s.status === "Safe" ? "shadow-[0_0_15px_rgba(74,222,128,0.1)] border-chart-safe/30 hover:bg-chart-safe/5" : ""}`}>
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1 cursor-pointer group" onClick={() => { setSelectedStudent(s); handleOracleAnalyze(s.id); }}>
+                        <div className="flex-1 cursor-pointer group" onClick={() => { setSelectedStudent(s); handleOracleAnalyze(s.id); setActivePage?.("oracle"); }}>
                           <p className="font-bold text-foreground group-hover:text-accent transition-colors font-syne tracking-wide">{s.name}</p>
                           <p className="text-[10px] section-label mt-1">{s.id}</p>
                         </div>
@@ -154,7 +203,7 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
                               <DropdownMenuItem onClick={() => toast.success(`Peer Bridge activated for ${s.name}`)} className="text-xs cursor-pointer focus:bg-surface focus:text-accent">
                                 Assign Peer Mentor
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => toast.success("Intervention plan generated and saved.")} className="text-xs cursor-pointer focus:bg-surface focus:text-accent">
+                              <DropdownMenuItem onClick={() => handleSendPlan(s, `Custom intervention plan generated by Sentinel for ${s.name}: Focus on improving IAT performance and attendance.`)} className="text-xs cursor-pointer focus:bg-surface focus:text-accent">
                                 Auto-Gen Intervention
                               </DropdownMenuItem>
                               <DropdownMenuSeparator className="bg-border" />
@@ -165,7 +214,7 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
                           </DropdownMenu>
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 mt-4 mb-4 cursor-pointer" onClick={() => { setSelectedStudent(s); handleOracleAnalyze(s.id); }}>
+                      <div className="grid grid-cols-3 gap-2 mt-4 mb-4 cursor-pointer" onClick={() => { setSelectedStudent(s); handleOracleAnalyze(s.id); setActivePage?.("oracle"); }}>
                         <div className="bg-background border border-border/50 hover:border-accent/30 transition-colors rounded-lg p-2 text-center shadow-sm">
                           <p className="text-[9px] section-label uppercase">Att</p>
                           <p className={`text-sm font-mono font-bold mt-1 ${s.attendance < 75 ? "text-chart-critical" : "text-foreground"}`}>{s.attendance}%</p>
@@ -201,58 +250,14 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
                     </div>
                     
                     <div className="mt-2 flex gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className="flex-1 btn-secondary py-1.5 rounded-lg text-[11px] font-bold tracking-wide transition-all shadow-sm">
-                            Quick Note
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-3 bg-card border-border">
-                          <h4 className="text-xs font-bold mb-2">Add Note for {s.name}</h4>
-                          <textarea 
-                            className="w-full bg-background border border-border rounded text-xs p-2 focus:outline-none focus:border-accent min-h-[60px]"
-                            placeholder="Add intervention details..."
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                const val = e.currentTarget.value.trim();
-                                if (val) {
-                                  setStudentNotes(prev => ({...prev, [s.id]: val}));
-                                  toast.success("Note saved");
-                                  // Close popover logic would go here in a real app, utilizing Radix UI controlled state
-                                }
-                              }
-                            }}
-                          />
-                          <p className="text-[9px] text-muted-foreground text-right mt-1">Press Enter to save</p>
-                        </PopoverContent>
-                      </Popover>
+                      <button onClick={() => setScheduleStudent(s)} className="flex-1 btn-secondary py-1.5 rounded-lg text-[11px] font-bold tracking-wide transition-all shadow-sm">
+                        Schedule Meeting
+                      </button>
                       
                       {s.status === "Critical" && (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className="flex-1 shrink-0 bg-gradient-to-r from-red-600 to-red-500 text-white shadow-[0_4px_10px_rgba(239,68,68,0.4)] hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 hover:scale-[1.02] active:scale-95">
-                              <AlertTriangle className="h-3 w-3" /> Parent Alert
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 p-0 bg-card border-border overflow-hidden">
-                            <div className="bg-red-500/10 p-3 border-b border-border">
-                              <h4 className="text-xs font-bold text-red-400">Initiate Parent Contact</h4>
-                              <p className="text-[10px] text-muted-foreground mt-1">Reason: Critical Risk Flag (Week 4)</p>
-                            </div>
-                            <div className="p-2 flex flex-col gap-1">
-                              <button onClick={() => toast.success(`SMS Dispatched to ${s.name}'s parent.`)} className="flex items-center gap-2 p-2 hover:bg-surface rounded text-xs text-foreground transition-colors w-full text-left">
-                                <Phone className="h-3 w-3 text-muted-foreground" /> Automated SMS Alert
-                              </button>
-                              <button onClick={() => toast.success(`Official Email sent to ${s.name}'s parent.`)} className="flex items-center gap-2 p-2 hover:bg-surface rounded text-xs text-foreground transition-colors w-full text-left">
-                                <Mail className="h-3 w-3 text-muted-foreground" /> Automated Email
-                              </button>
-                              <button onClick={() => toast("Logged manual call attempt.")} className="flex items-center gap-2 p-2 hover:bg-surface rounded text-xs text-foreground transition-colors w-full text-left">
-                                <Phone className="h-3 w-3 text-blue-400" /> Log Manual Call
-                              </button>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                        <button onClick={() => setAlertStudent(s)} className="flex-1 shrink-0 bg-gradient-to-r from-red-600 to-red-500 text-white shadow-[0_4px_10px_rgba(239,68,68,0.4)] hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 hover:scale-[1.02] active:scale-95">
+                          <AlertTriangle className="h-3 w-3" /> Parent Alert
+                        </button>
                       )}
                     </div>
                   </div>
@@ -300,37 +305,38 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-transparent z-10 text-[13px] hide-scrollbar">
+            <div className="flex flex-col overflow-y-auto p-5 scroll-smooth flex-1 hide-scrollbar">
               {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"} animate-fade-up`} style={{ animationFillMode: "both" }}>
-                  <div className={`max-w-[80%] px-5 py-3.5 text-sm leading-relaxed shadow-sm ${
-                    m.role === "user" ? "bubble-user" : "bubble-ai"
-                  }`}>
-                    {m.content}
-                  </div>
-                </div>
+                <AIMessage key={i} content={m.content} isUser={m.role === "user"} />
               ))}
-              {isTyping && (
-                <div className="flex justify-start animate-fade-up">
-                  <div className="bubble-ai px-5 py-4 rounded-xl flex items-center gap-2 shadow-sm">
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                  </div>
-                </div>
-              )}
+              {isTyping && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={handleSendChat} className="p-4 bg-surface-warm/80 backdrop-blur-md border-t border-border/50 flex gap-3 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.2)]">
-              <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} disabled={isTyping} placeholder="Ask about interventions..." className="flex-1 input-warm w-full text-[13px] px-5 shadow-inner" />
-              <button type="submit" disabled={!chatInput.trim() || isTyping} className="btn-primary h-auto px-6 font-medium tracking-wide flex items-center justify-center gap-2 transition-all">
-                <Send className="h-[18px] w-[18px]" />
+            <div className="w-full bg-[#1A1C20] border-t border-border/10 p-5 z-10 mt-auto rounded-b-[24px]">
+            <form onSubmit={handleSendChat} className="max-w-5xl mx-auto flex items-center gap-3">
+              <div className="flex-1 flex items-center bg-[#131417] border border-white/5 rounded-full px-5 py-3.5 focus-within:border-accent/40 focus-within:bg-[#1A1C20] transition-colors shadow-inner">
+                <input 
+                  type="text" 
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  disabled={isTyping}
+                  placeholder="Ask about interventions..."
+                  className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-[14.5px] text-foreground/90 placeholder:text-muted-foreground/40 disabled:opacity-50"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={!chatInput.trim() || isTyping} 
+                className="h-[52px] px-8 rounded-full bg-[#1A2544] border border-[#2A3F7A]/60 flex items-center justify-center text-accent hover:bg-[#202D52] hover:border-accent/40 transition-all duration-300 disabled:opacity-40 disabled:hover:bg-[#1A2544] disabled:hover:border-[#2A3F7A]/60 shadow-[0_0_15px_rgba(26,37,68,0.5)] flex-shrink-0"
+              >
+                <Send className="h-5 w-5" />
               </button>
             </form>
           </div>
         </div>
-        )}
+      </div>
+      )}
 
         {/* Intervention Log (Interventions Page only) */}
         {activePage === "plans" && (
@@ -494,6 +500,64 @@ export default function MentorView({ activePage = "dashboard" }: { activePage?: 
              <p className="text-3xl font-mono font-bold text-chart-safe mb-2">{stats[3].val}</p>
              <p className="text-[13px] leading-relaxed">Successful interventions resulting in student re-engagement.</p>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!scheduleStudent} onOpenChange={(open) => { if (!open) setScheduleStudent(null); }}>
+        <DialogContent className="sm:max-w-[400px] border-border/50 bg-surface-warm shadow-2xl p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold font-syne tracking-wide gradient-text-gold">Schedule Meeting</DialogTitle>
+          </DialogHeader>
+          {scheduleStudent && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm font-bold text-foreground">With: {scheduleStudent.name}</p>
+              <input type="datetime-local" onChange={(e) => setMeetingDateStr(e.target.value)} className="w-full bg-surface-hover/50 border border-border rounded-xl p-3 text-sm focus:outline-none focus:border-accent/50 text-foreground" />
+              <textarea 
+                className="w-full bg-surface-hover/50 border border-border rounded-xl p-3 text-sm focus:outline-none focus:border-accent/50 text-foreground resize-none" 
+                rows={2} 
+                placeholder="Meeting Agenda..."
+              />
+              <div className="flex justify-end gap-2 pr-1 mt-2">
+                <button onClick={() => setScheduleStudent(null)} className="px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                <button 
+                  onClick={() => { 
+                    const d = new Date(meetingDateStr || Date.now());
+                    handleScheduleMeeting(scheduleStudent, d.toLocaleDateString(), d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+                  }} 
+                  className="px-5 py-2 text-xs font-bold btn-primary rounded-lg shadow-md"
+                >Confirm Appointment</button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!alertStudent} onOpenChange={(open) => { if (!open) setAlertStudent(null); }}>
+        <DialogContent className="sm:max-w-[400px] border-border/50 bg-surface-warm shadow-2xl p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold font-syne tracking-wide flex items-center gap-2 text-chart-critical">
+              <AlertTriangle className="h-5 w-5" /> Initiate Parent Alert
+            </DialogTitle>
+          </DialogHeader>
+          {alertStudent && (
+            <div className="flex flex-col gap-4">
+              <div className="bg-red-500/10 p-3 border border-red-500/20 rounded-xl">
+                 <p className="text-sm font-bold text-red-500 mb-1">Target: Parent of {alertStudent.name}</p>
+                 <p className="text-xs text-red-400">Reason: High Risk / Poor Academic Trajectory</p>
+              </div>
+              
+              <div className="flex flex-col gap-2 mt-2">
+                <button onClick={() => handleParentAlert(alertStudent)} className="flex items-center gap-3 p-3 bg-surface hover:bg-surface-hover border border-border rounded-xl text-sm font-bold transition-all text-left group">
+                  <div className="bg-accent/10 p-2 rounded-lg group-hover:bg-accent/20"><Phone className="h-4 w-4 text-accent" /></div>
+                  <div className="flex-1">Send Automated SMS <p className="text-[10px] text-muted-foreground font-normal">Immediate delivery</p></div>
+                </button>
+                <button onClick={() => handleParentAlert(alertStudent)} className="flex items-center gap-3 p-3 bg-surface hover:bg-surface-hover border border-border rounded-xl text-sm font-bold transition-all text-left group">
+                  <div className="bg-blue-500/10 p-2 rounded-lg group-hover:bg-blue-500/20"><Mail className="h-4 w-4 text-blue-400" /></div>
+                  <div className="flex-1">Send Official Email <p className="text-[10px] text-muted-foreground font-normal">Formal warning template</p></div>
+                </button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

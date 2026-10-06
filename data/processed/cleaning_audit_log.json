@@ -1,0 +1,96 @@
+{
+  "dataset_name": "Predict Students' Dropout and Academic Success",
+  "rows_before": 4424,
+  "rows_after": 4424,
+  "duplicates_removed": 0,
+  "missing_values_handled": 0,
+  "invalid_records_flagged": 0,
+  "cleaning_operations": [
+    {
+      "operation": "Schema Audit & Header Normalization",
+      "status": "PASSED",
+      "affected_columns": [
+        "student_id",
+        "marital_status",
+        "application_mode",
+        "application_order",
+        "course",
+        "daytime_evening_attendance",
+        "previous_qualification",
+        "previous_qualification_grade",
+        "nationality",
+        "mother_qualification",
+        "father_qualification",
+        "mother_occupation",
+        "father_occupation",
+        "admission_grade",
+        "displaced",
+        "educational_special_needs",
+        "debtor",
+        "tuition_fees_up_to_date",
+        "gender",
+        "scholarship_holder",
+        "age_at_enrollment",
+        "international",
+        "curricular_units_1st_sem_credited",
+        "curricular_units_1st_sem_enrolled",
+        "curricular_units_1st_sem_evaluations",
+        "curricular_units_1st_sem_approved",
+        "curricular_units_1st_sem_grade",
+        "curricular_units_1st_sem_without_evaluations",
+        "curricular_units_2nd_sem_credited",
+        "curricular_units_2nd_sem_enrolled",
+        "curricular_units_2nd_sem_evaluations",
+        "curricular_units_2nd_sem_approved",
+        "curricular_units_2nd_sem_grade",
+        "curricular_units_2nd_sem_without_evaluations",
+        "unemployment_rate",
+        "inflation_rate",
+        "gdp",
+        "target",
+        "gender_label",
+        "scholarship_label",
+        "debtor_label",
+        "tuition_fees_label",
+        "displaced_label",
+        "semester_grade_change",
+        "semester_approval_change",
+        "approval_rate_sem1",
+        "approval_rate_sem2",
+        "academic_progression_index",
+        "financial_risk_indicator",
+        "academic_load_ratio",
+        "performance_stability"
+      ],
+      "details": "Standardized all 37 variable headers to canonical lower_snake_case."
+    },
+    {
+      "operation": "Exact Duplicate Record Detection",
+      "status": "PASSED",
+      "affected_columns": [
+        "ALL"
+      ],
+      "details": "Detected 0 duplicate student records."
+    },
+    {
+      "operation": "Range & Domain Boundary Validation",
+      "status": "PASSED",
+      "affected_columns": [
+        "curricular_units_1st_sem_approved",
+        "curricular_units_2nd_sem_approved"
+      ],
+      "details": "Flagged 0 records exceeding enrollment limits."
+    },
+    {
+      "operation": "Categorical Label Standardization",
+      "status": "PASSED",
+      "affected_columns": [
+        "gender_label",
+        "scholarship_label",
+        "debtor_label",
+        "tuition_fees_label"
+      ],
+      "details": "Mapped binary integer flags into clear human-readable categorical labels."
+    }
+  ]
+}

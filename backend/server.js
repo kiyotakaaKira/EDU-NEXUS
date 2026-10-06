@@ -6,6 +6,12 @@ const mongoose = require('mongoose');
 const User = require('./models/User');
 const Intervention = require('./models/Intervention');
 const Alert = require('./models/Alert');
+const { 
+  sendParentAlert, 
+  sendEscalationEmail, 
+  sendInterventionEmail,
+  sendMeetingScheduleEmail 
+} = require('./utils/mailer');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -111,18 +117,34 @@ app.get('/api/interventions', verifyToken, async (req, res) => {
   }
 });
 
-// PARENT ALERT
+// PARENT ALERT WITH REAL EMAIL
 app.post('/api/alerts/parent', verifyToken, async (req, res) => {
   try {
-    const alert = await Alert.create({
-      studentId: req.body.studentId,
-      studentName: req.body.studentName,
-      message: req.body.message,
-      sentBy: req.user.name
+    const { studentName, studentId, attendance, message } = req.body;
+    
+    const db_alert = await Alert.create({
+      studentId,
+      studentName,
+      message: message || `Urgent: ${studentName} attendance is at ${attendance}%`,
+      sentBy: req.user.name,
+      type: 'Parent Alert'
     });
-    res.json({ success: true, alert });
-  } catch {
-    res.status(500).json({ error: 'Failed to save alert' });
+
+    const emailResult = await sendParentAlert(
+      studentName,
+      studentId, 
+      attendance,
+      req.user.name
+    );
+
+    res.json({ 
+      success: true, 
+      alert: db_alert,
+      emailSent: emailResult.success,
+      message: emailResult.success ? 'Alert saved and email sent to parent' : 'Alert saved but email failed'
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send alert' });
   }
 });
 
@@ -135,9 +157,64 @@ app.post('/api/ai/chat', verifyToken, async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'llama3.2',
-        prompt: systemPrompt + '\n\nUser: ' + userMessage + '\n\nAssistant:',
+        prompt: `You are Sentinel AI for Chennai Institute of Technology.
+
+FORMATTING RULES:
+- Bold key numbers using **bold**
+- Use bullet points with → for lists
+- Never write walls of text
+- Break content into clear sections
+
+LENGTH RULES:
+- Simple greeting → 1-2 lines + question
+- Single metric check → 3-4 lines + question
+- Analysis request → structured sections
+- Full report request → headers + bullets + summary
+
+FORMATS:
+
+Simple:
+[1-2 line answer]
+[question]
+
+Data check:
+**[Topic]**
+→ [metric 1]
+→ [metric 2]
+[question]
+
+Analysis:
+**Assessment**
+[2-3 sentences]
+
+**Key Points**
+→ [point 1]
+→ [point 2]
+
+**Next Step**
+[one action]
+
+[question]
+
+RULES:
+- End EVERY reply with ONE question
+- Acknowledge feelings before advice for students
+- Build on conversation history
+- Never repeat same question twice
+
+TONE:
+- Student → warm, friendly, supportive senior
+- Mentor/Teacher → direct, tactical
+- HOD → professional, departmental
+- Principal/Chairman → strategic, institutional
+
+CONTEXT: ${systemPrompt}
+
+User: ${userMessage}
+
+Sentinel AI:`,
         stream: false,
-        options: { temperature: 0.7, num_predict: 300 }
+        options: { temperature: 0.75, num_predict: 350 }
       })
     });
     const data = await response.json();
@@ -145,7 +222,7 @@ app.post('/api/ai/chat', verifyToken, async (req, res) => {
   } catch {
     res.json({
       success: true,
-      response: 'Based on your academic profile, I recommend focusing on attendance recovery and scheduling a mentor meeting this week.',
+      response: 'Sentinel AI is momentarily offline. Please try again.',
       fallback: true
     });
   }
@@ -164,7 +241,43 @@ Provide: 1) Dropout probability % 2) Top 3 root causes 3) 4-week rescue plan 4) 
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'llama3.2', prompt, stream: false, options: { temperature: 0.7, num_predict: 500 } })
+      body: JSON.stringify({
+          model: 'llama3.2',
+          prompt: `You are Sentinel AI for CIT. Structured formatting only. Bold key terms. Bullet points, no paragraphs.
+
+**Student Profile**
+→ Name: ${studentData.name}
+→ Year: ${studentData.year} | Dept: ${studentData.department}
+→ Attendance: ${studentData.attendance}%
+→ IAT Total: ${studentData.iatTotal}/100
+→ Status: ${studentData.status}
+→ Pattern: ${studentData.persona}
+
+Reply in this EXACT format:
+
+**Dropout Risk**
+[X]% — [one line reason]
+
+**Root Causes**
+→ [Cause 1]
+→ [Cause 2]
+→ [Cause 3]
+
+**4-Week Rescue Plan**
+→ Week 1: [action]
+→ Week 2: [action]
+→ Week 3: [action]
+→ Week 4: [action]
+
+**What NOT To Do**
+→ [Mistake 1]
+→ [Mistake 2]
+
+**Mentor Opening Line**
+"[Exact sentence to say to student]"`,
+          stream: false,
+          options: { temperature: 0.72, num_predict: 400 }
+        })
     });
     const data = await response.json();
     res.json({ success: true, analysis: data.response });
@@ -175,6 +288,202 @@ Provide: 1) Dropout probability % 2) Top 3 root causes 3) 4-week rescue plan 4) 
       fallback: true
     });
   }
+});
+
+// ESCALATION TO PRINCIPAL WITH EMAIL
+app.post('/api/escalations', verifyToken, async (req, res) => {
+  try {
+    const { studentName, studentId, issue, priority } = req.body;
+    
+    const escalation = await Intervention.create({
+      studentId,
+      studentName,
+      type: 'Escalation',
+      note: issue,
+      createdBy: req.user.name,
+      createdByRole: req.user.role,
+      status: 'Escalated'
+    });
+
+    const emailResult = await sendEscalationEmail(
+      studentName,
+      studentId,
+      req.user.name,
+      issue,
+      process.env.PRINCIPAL_EMAIL
+    );
+
+    res.json({ 
+      success: true, 
+      escalation,
+      emailSent: emailResult.success
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Escalation failed' });
+  }
+});
+
+// GET ESCALATIONS (Principal view)
+app.get('/api/escalations', verifyToken, async (req, res) => {
+  try {
+    const escalations = await Intervention.find({ 
+      type: 'Escalation' 
+    }).sort({ createdAt: -1 });
+    res.json(escalations);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch escalations' });
+  }
+});
+
+// RESOLVE ESCALATION
+app.patch('/api/escalations/:id/resolve', verifyToken, async (req, res) => {
+  try {
+    const escalation = await Intervention.findByIdAndUpdate(
+      req.params.id,
+      { status: 'Resolved' },
+      { new: true }
+    );
+    res.json({ success: true, escalation });
+  } catch {
+    res.status(500).json({ error: 'Failed to resolve' });
+  }
+});
+
+// ACKNOWLEDGE ESCALATION
+app.patch('/api/escalations/:id/acknowledge', verifyToken, async (req, res) => {
+  try {
+    const escalation = await Intervention.findByIdAndUpdate(
+      req.params.id,
+      { status: 'Acknowledged' },
+      { new: true }
+    );
+    res.json({ success: true, escalation });
+  } catch {
+    res.status(500).json({ error: 'Failed to acknowledge' });
+  }
+});
+
+// SCHEDULE MEETING WITH EMAIL
+app.post('/api/meetings', verifyToken, async (req, res) => {
+  try {
+    const { studentName, studentId, date, time, studentEmail } = req.body;
+    
+    const meeting = await Intervention.create({
+      studentId,
+      studentName,
+      type: 'Meeting Scheduled',
+      note: `Meeting on ${date} at ${time}`,
+      createdBy: req.user.name,
+      createdByRole: req.user.role,
+      status: 'Active'
+    });
+
+    const emailResult = await sendMeetingScheduleEmail(
+      studentName,
+      req.user.name,
+      date,
+      time,
+      studentEmail
+    );
+
+    res.json({ 
+      success: true, 
+      meeting,
+      emailSent: emailResult.success
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to schedule meeting' });
+  }
+});
+
+// SEND INTERVENTION PLAN WITH EMAIL
+app.post('/api/interventions/send-plan', verifyToken, async (req, res) => {
+  try {
+    const { studentName, studentId, plan, studentEmail } = req.body;
+    
+    const intervention = await Intervention.create({
+      studentId,
+      studentName,
+      type: 'AI Intervention Plan',
+      note: plan,
+      createdBy: req.user.name,
+      status: 'Active'
+    });
+
+    const emailResult = await sendInterventionEmail(
+      studentName,
+      req.user.name,
+      plan,
+      studentEmail
+    );
+
+    res.json({ 
+      success: true, 
+      intervention,
+      emailSent: emailResult.success
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send plan' });
+  }
+});
+
+// REPORT GENERATION
+app.post('/api/reports/generate', verifyToken, async (req, res) => {
+  try {
+    const { reportType, department } = req.body;
+    
+    const reportData = {
+      id: Date.now(),
+      type: reportType,
+      department: department || req.user.department,
+      generatedBy: req.user.name,
+      generatedAt: new Date().toISOString(),
+      downloadUrl: `/api/reports/download/${Date.now()}`
+    };
+
+    res.json({ success: true, report: reportData });
+  } catch {
+    res.status(500).json({ error: 'Report generation failed' });
+  }
+});
+
+// NOTIFICATION ROUTES
+app.get('/api/notifications', verifyToken, async (req, res) => {
+  const notificationsByRole = {
+    Student: [
+      { id: 1, message: 'Your attendance has dropped below 75%', read: false, type: 'warning', time: '2 hours ago' },
+      { id: 2, message: 'IAT 2 scheduled for Week 8 — 2 weeks away', read: false, type: 'info', time: '1 day ago' },
+      { id: 3, message: 'New concept video recommended for you', read: true, type: 'info', time: '2 days ago' }
+    ],
+    'Subject Teacher': [
+      { id: 1, message: 'Mark entry deadline is tomorrow', read: false, type: 'warning', time: '3 hours ago' },
+      { id: 2, message: '3 students have been referred to mentor', read: false, type: 'info', time: '1 day ago' },
+      { id: 3, message: 'Class attendance report ready', read: true, type: 'success', time: '3 days ago' }
+    ],
+    Mentor: [
+      { id: 1, message: '3 mentees need urgent intervention', read: false, type: 'critical', time: '1 hour ago' },
+      { id: 2, message: 'Peer bridge match available for Arun Kumar', read: false, type: 'info', time: '5 hours ago' },
+      { id: 3, message: 'New escalation received from HOD', read: false, type: 'warning', time: '1 day ago' }
+    ],
+    HOD: [
+      { id: 1, message: '5 students at critical risk this week', read: false, type: 'critical', time: '30 mins ago' },
+      { id: 2, message: 'Weekly retention report is ready', read: false, type: 'success', time: '2 hours ago' },
+      { id: 3, message: '2 interventions are overdue', read: false, type: 'warning', time: '1 day ago' }
+    ],
+    Principal: [
+      { id: 1, message: 'Monthly institution report available', read: false, type: 'info', time: '1 hour ago' },
+      { id: 2, message: 'New escalation from AI & DS department', read: false, type: 'critical', time: '3 hours ago' },
+      { id: 3, message: 'Retention rate updated — 94.2%', read: false, type: 'success', time: '1 day ago' }
+    ],
+    Chairman: [
+      { id: 1, message: 'Semester IV retention report ready', read: false, type: 'success', time: '2 hours ago' },
+      { id: 2, message: 'SDG 4 impact metrics updated', read: false, type: 'info', time: '1 day ago' },
+      { id: 3, message: 'Industry readiness cohort expanded to 34 students', read: false, type: 'success', time: '2 days ago' }
+    ]
+  };
+
+  const notifications = notificationsByRole[req.user.role] || [];
+  res.json(notifications);
 });
 
 app.listen(PORT, () => {

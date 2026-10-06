@@ -1,0 +1,59 @@
+[
+  {
+    "step": "Join studentAssessment \u22c8 assessments",
+    "keys": [
+      "id_assessment"
+    ],
+    "type": "INNER JOIN",
+    "left_rows": 400,
+    "right_rows": 4,
+    "result_rows": 400,
+    "note": "Retains only assessed submissions with valid descriptors."
+  },
+  {
+    "step": "Remove unscored submissions",
+    "keys": [
+      "score"
+    ],
+    "type": "FILTER",
+    "left_rows": 400,
+    "result_rows": 400,
+    "note": "Rows with null score excluded (e.g., non-submitted assessments)."
+  },
+  {
+    "step": "Aggregate academic summary by student/module/presentation",
+    "keys": [
+      "id_student",
+      "code_module",
+      "code_presentation"
+    ],
+    "type": "GROUP BY + AGG",
+    "left_rows": 400,
+    "result_rows": 200,
+    "note": "Includes weighted average score using assessment weights."
+  },
+  {
+    "step": "Aggregate engagement summary from studentVle",
+    "keys": [
+      "id_student",
+      "code_module",
+      "code_presentation"
+    ],
+    "type": "GROUP BY + AGG",
+    "left_rows": 3000,
+    "result_rows": 100,
+    "note": "total_clicks, active_days, unique_resources, avg_clicks_per_active_day computed."
+  },
+  {
+    "step": "Build master analytical dataset: studentInfo \u22c9 academic \u22c9 engagement",
+    "keys": [
+      "id_student",
+      "code_module",
+      "code_presentation"
+    ],
+    "type": "LEFT JOIN \u00d7 2",
+    "left_rows": 100,
+    "result_rows": 100,
+    "note": "Students without VLE or assessment data retain NaN \u2014 treated in M4 cleaning."
+  }
+]

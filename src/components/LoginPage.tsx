@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Shield, ChevronDown, GraduationCap, BookOpen, Users, Building2, Crown, Lock } from "lucide-react";
+import { Shield, ChevronDown, GraduationCap, BookOpen, Users, Building2, Crown, Lock, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import type { Role } from "@/types/auth";
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Background animation delay
   const [mounted, setMounted] = useState(false);
@@ -31,8 +32,8 @@ export default function LoginPage() {
     setError(false);
     
     // Simulate slight network delay for effect
-    setTimeout(() => {
-      const success = login(userId, password);
+    setTimeout(async () => {
+      const success = await login(userId, password);
       if (!success) {
         setError(true);
         setLoading(false);
@@ -46,8 +47,8 @@ export default function LoginPage() {
     setPassword(pass);
     setError(false);
     setLoading(true);
-    setTimeout(() => {
-      const success = login(uid, pass);
+    setTimeout(async () => {
+      const success = await login(uid, pass);
       if (!success) {
         setError(true);
         setLoading(false);
@@ -104,15 +105,24 @@ export default function LoginPage() {
 
               <div className="space-y-1.5">
                 <label className="section-label">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(false); }}
-                  className="w-full input-warm px-4 py-3 font-mono text-sm"
-                  placeholder="••••••••"
-                  autoComplete="off"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(false); }}
+                    className="w-full input-warm px-4 py-3 font-mono text-sm pr-10"
+                    placeholder="••••••••"
+                    autoComplete="off"
+                    required
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 

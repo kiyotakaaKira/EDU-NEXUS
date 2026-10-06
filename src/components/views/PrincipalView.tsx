@@ -7,6 +7,8 @@ import { Shield, AlertOctagon, CheckSquare, TrendingDown, Globe, Sparkles, Clock
 import { askClaude } from "@/utils/claudeAI";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AIMessage, TypingIndicator } from "@/components/ui/AIMessage";
+import { getEscalationsAPI, acknowledgeEscalationAPI, resolveEscalationAPI, generateReportAPI, getToken } from '@/utils/api';
 
 export default function PrincipalView({ activePage = "dashboard" }: { activePage?: string }) {
   const { user } = useAuth();
@@ -18,19 +20,60 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
   const [criticalModalOpen, setCriticalModalOpen] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [activeModalOpen, setActiveModalOpen] = useState(false);
+  const [noticeModalOpen, setNoticeModalOpen] = useState(false);
+  const [noticeText, setNoticeText] = useState("");
 
   useEffect(() => {
     switch (activePage) {
       case "overview": setActiveTab("Institution Overview"); break;
       case "escalation": setActiveTab("Escalation Panel"); break;
       case "compliance": setActiveTab("Compliance Tracker"); break;
+      case "insights": setActiveTab("Dropout Insights AI"); break;
+      case "analytics": setActiveTab("Cross-Dept Analytics"); break;
       default: setActiveTab("Institution Overview");
     }
   }, [activePage]);
 
   const batchSummary = getBatchRiskSummary(students);
-  const escalations = students.filter(s => s.status === "Critical" && s.interventionStatus === "Pending" && !acknowledged.has(s.id));
+  const [escalations, setEscalations] = useState<any[]>([]);
   const auditStudents = students.filter(s => s.interventionStatus !== "None");
+
+  useEffect(() => {
+    const loadEscalations = async () => {
+      const data = await getEscalationsAPI(getToken());
+      setEscalations(Array.isArray(data) ? data : []);
+    };
+    loadEscalations();
+    const interval = setInterval(() => {
+      loadEscalations();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleAcknowledge = async (id: string, name: string) => {
+    const result = await acknowledgeEscalationAPI(id, getToken());
+    if (result.success) {
+      setEscalations(prev => prev.map(e => 
+        e._id === id ? { ...e, status: 'Acknowledged' } : e
+      ));
+      toast.success(`Escalation acknowledged for ${name} ✓`);
+    }
+  };
+
+  const handleResolve = async (id: string) => {
+    const result = await resolveEscalationAPI(id, getToken());
+    if (result.success) {
+      setEscalations(prev => prev.filter(e => e._id !== id));
+      toast.success('Case resolved ✓');
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    toast("Generating Institution report...");
+    setFabOpen(false);
+    const result = await generateReportAPI({ reportType: "Institution Report" }, getToken());
+    if (result.success) toast.success("Institution Report exported to Excel ✓");
+  };
 
   const deptCritical = departmentStats.filter(d => d.total > 0).map((d) => ({ dept: d.dept, critical: d.critical, color: d.critical > 5 ? "#ef4444" : d.critical > 2 ? "#f97316" : "#22c55e" }));
 
@@ -135,18 +178,20 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
                  <h3 className="text-[13px] font-bold section-label tracking-widest flex items-center gap-2"><AlertOctagon className="h-4 w-4 text-chart-critical" /> Top Urgent Escalations</h3>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                {escalations.slice(0, 5).map((s, i) => (
-                  <div key={s.id} className="p-4 bg-surface-warm/30 rounded-xl border border-border/50 hover:border-red-500/30 hover:bg-red-500/5 transition-all flex justify-between items-center group shadow-sm stagger-1" style={{ animationDelay: `${0.1 * i}s` }}>
+                {escalations.filter(e => e.status === 'Escalated').slice(0, 5).map((s, i) => {
+                  const st = students.find(stu => stu.id === s.studentId) || students[0];
+                  return (
+                  <div key={s._id} className="p-4 bg-surface-warm/30 rounded-xl border border-border/50 hover:border-red-500/30 hover:bg-red-500/5 transition-all flex justify-between items-center group shadow-sm stagger-1" style={{ animationDelay: `${0.1 * i}s` }}>
                     <div>
-                      <p className="font-bold text-[14px] font-syne tracking-wide text-foreground">{s.name} <span className="text-[10px] section-label ml-2 tracking-widest">{s.department}</span></p>
-                      <p className="text-[11px] font-medium text-chart-critical mt-1 leading-relaxed">"{analyzeStudent(s).primaryTrigger}"</p>
+                      <p className="font-bold text-[14px] font-syne tracking-wide text-foreground">{s.studentName} <span className="text-[10px] section-label ml-2 tracking-widest">{st.department}</span></p>
+                      <p className="text-[11px] font-medium text-chart-critical mt-1 leading-relaxed">"{s.note}"</p>
                     </div>
-                    <button onClick={() => { setAcknowledged(a => new Set([...a, s.id])); toast.success(`Escalation acknowledged for ${s.name}`); }} className="hidden group-hover:block btn-ghost border border-border py-1.5 px-3 text-[11px] font-bold rounded-md hover:bg-surface-hover transition-colors shadow-sm">
+                    <button onClick={() => handleAcknowledge(s._id, s.studentName)} className="hidden group-hover:block btn-ghost border border-border py-1.5 px-3 text-[11px] font-bold rounded-md hover:bg-surface-hover transition-colors shadow-sm">
                       Acknowledge
                     </button>
                   </div>
-                ))}
-                {escalations.length === 0 && (
+                )})}
+                {escalations.filter(e => e.status === 'Escalated').length === 0 && (
                   <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-chart-safe/20 bg-chart-safe/5 rounded-xl">
                     <div className="p-4 bg-chart-safe/20 rounded-full mb-4"><CheckCircle className="h-8 w-8 text-chart-safe glow-safe" /></div>
                     <p className="font-bold font-syne tracking-wide text-chart-safe text-lg">All Escalations Addressed</p>
@@ -170,28 +215,30 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
               {escalations.map((s, i) => {
-                const analysis = analyzeStudent(s);
+                const st = students.find(stu => stu.id === s.studentId) || students[0];
                 return (
-                  <div key={s.id} className="card-warm p-6 rounded-2xl border-red-500/30 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all card-critical-glow animate-fade-up" style={{ animationDelay: `${0.1 * i}s`, animationFillMode: "both" }}>
+                  <div key={s._id} className="card-warm p-6 rounded-2xl border-red-500/30 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all card-critical-glow animate-fade-up" style={{ animationDelay: `${0.1 * i}s`, animationFillMode: "both" }}>
                     <div className="flex justify-between items-start border-b border-border/50 pb-4">
                       <div>
-                        <p className="font-bold font-syne tracking-wide text-foreground text-xl mb-1">{s.name}</p>
-                        <p className="text-[11px] section-label font-mono">{s.id} · <span className="text-accent">{s.department}</span> · Year {s.year}</p>
+                        <p className="font-bold font-syne tracking-wide text-foreground text-xl mb-1">{s.studentName}</p>
+                        <p className="text-[11px] section-label font-mono">{s.studentId} · <span className="text-accent">{st.department}</span> · Year {st.year}</p>
                       </div>
-                      <span className="bg-red-500/10 text-chart-critical border border-red-500/20 text-[10px] uppercase tracking-widest font-bold px-3 py-1.5 rounded-lg animate-pulse shadow-sm">ESCALATED</span>
+                      <span className={`border text-[10px] uppercase tracking-widest font-bold px-3 py-1.5 rounded-lg shadow-sm ${s.status === 'Acknowledged' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' : 'bg-red-500/10 text-chart-critical border-red-500/20 animate-pulse'}`}>{s.status}</span>
                     </div>
                     <div className="bg-surface-warm/50 rounded-xl p-4 border border-border/50 shadow-inner">
-                      <p className="text-[13px] font-medium text-chart-critical leading-relaxed">"{analysis.primaryTrigger}"</p>
+                      <p className="text-[13px] font-medium text-chart-critical leading-relaxed">"{s.note}"</p>
                       <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 mt-4 section-label">
-                        <Clock className="h-4 w-4" /> Flagged Week {s.weekTriggered} <span className="text-border">|</span> <span className="text-red-400">{(6 - s.weekTriggered) * 7} days unresolved</span>
+                        <Clock className="h-4 w-4" /> Escalate Date: {new Date(s.createdAt || Date.now()).toLocaleDateString()} 
                       </p>
                     </div>
                     <div className="flex gap-3 mt-2">
-                      <button onClick={() => { setAcknowledged(a => new Set([...a, s.id])); toast.success(`Acknowledged ${s.name}`); }} className="flex-1 btn-ghost border border-border text-[11px] font-bold uppercase tracking-wider py-3 rounded-xl hover:bg-surface-hover transition-colors shadow-sm">
-                        Acknowledge
-                      </button>
-                      <button onClick={() => toast("Formal escalation dispatched to Chairman", { icon: <Shield className="h-4 w-4" />})} className="flex-1 btn-primary py-3 text-[11px] font-bold uppercase tracking-wider rounded-xl shadow-md glow-maroon transition-all">
-                        Escalate to Chairman
+                      {s.status === 'Escalated' && (
+                        <button onClick={() => handleAcknowledge(s._id, s.studentName)} className="flex-1 btn-ghost border border-border text-[11px] font-bold uppercase tracking-wider py-3 rounded-xl hover:bg-surface-hover transition-colors shadow-sm">
+                          Acknowledge
+                        </button>
+                      )}
+                      <button onClick={() => handleResolve(s._id)} className="flex-1 btn-primary py-3 text-[11px] font-bold uppercase tracking-wider rounded-xl shadow-md glow-maroon transition-all">
+                        Resolve Case
                       </button>
                     </div>
                   </div>
@@ -326,50 +373,35 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative z-10 bg-gradient-to-b from-transparent to-surface-warm/30">
+            <div className="flex flex-col overflow-y-auto p-5 scroll-smooth flex-1 hide-scrollbar">
               {messages.map((m, i) => (
-                <div key={i} className={`flex gap-4 max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${m.role === "assistant" ? "bg-card border border-accent/20 text-accent glow-gold" : "gradient-maroon text-muted/80" }`}>
-                    {m.role === "assistant" ? <Brain className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                  </div>
-                  <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-sm backdrop-blur-sm ${m.role === "user" ? "bg-accent/10 border border-accent/20 text-foreground rounded-tr-sm" : "bg-card/80 border border-border/50 text-foreground rounded-tl-sm border-l-2 border-l-accent"}`}>
-                    {m.content}
-                  </div>
-                </div>
+                <AIMessage key={i} content={m.content} isUser={m.role === "user"} />
               ))}
-              {isTyping && (
-                <div className="flex gap-4 max-w-[85%]">
-                  <div className="h-8 w-8 rounded-full bg-card border border-accent/20 flex items-center justify-center shrink-0 shadow-sm glow-gold">
-                    <Brain className="h-4 w-4 text-accent animate-pulse" />
-                  </div>
-                  <div className="p-4 rounded-2xl bg-card/80 border border-border/50 rounded-tl-sm flex gap-2 items-center shadow-sm">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
-                </div>
-              )}
+              {isTyping && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 bg-surface/80 backdrop-blur-md border-t border-border/50 z-10">
-              <form onSubmit={handleSendChat} className="flex gap-3 max-w-4xl mx-auto">
-                <input
-                  type="text"
+            <div className="w-full bg-[#1A1C20] border-t border-border/10 p-5 z-10 mt-auto rounded-b-[24px]">
+            <form onSubmit={handleSendChat} className="max-w-5xl mx-auto flex items-center gap-3">
+              <div className="flex-1 flex items-center bg-[#131417] border border-white/5 rounded-full px-5 py-3.5 focus-within:border-accent/40 focus-within:bg-[#1A1C20] transition-colors shadow-inner">
+                <input 
+                  type="text" 
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
+                  disabled={isTyping}
                   placeholder="Ask for institution-wide retention strategies, compliance scores, or escalation metrics..."
-                  className="flex-1 bg-card/50 border border-border/50 rounded-xl px-5 py-3 text-[13px] focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner"
+                  className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-[14.5px] text-foreground/90 placeholder:text-muted-foreground/40 disabled:opacity-50"
                 />
-                <button
-                  type="submit"
-                  disabled={!chatInput.trim() || isTyping}
-                  className="gradient-maroon text-accent px-5 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-md glow-maroon"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
-            </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={!chatInput.trim() || isTyping} 
+                className="h-[52px] px-8 rounded-full bg-[#1A2544] border border-[#2A3F7A]/60 flex items-center justify-center text-accent hover:bg-[#202D52] hover:border-accent/40 transition-all duration-300 disabled:opacity-40 disabled:hover:bg-[#1A2544] disabled:hover:border-[#2A3F7A]/60 shadow-[0_0_15px_rgba(26,37,68,0.5)] flex-shrink-0"
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            </form>
+          </div>
           </div>
         </div>
       )}      
@@ -434,11 +466,14 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
            <>
             <div className="fixed inset-0 bg-background/20 backdrop-blur-sm z-40" onClick={() => setFabOpen(false)} />
             <div className="absolute bottom-16 right-0 z-50 flex flex-col gap-3 mb-2 items-end animate-in slide-in-from-bottom-5">
-              <button onClick={() => { toast("Broadcasting Institutional Notification..."); setFabOpen(false); }} className="flex items-center gap-3 bg-card border border-accent/30 text-accent hover:bg-accent/10 px-4 py-2.5 rounded-full shadow-lg transition-colors group whitespace-nowrap">
+              <button 
+                onClick={() => { setNoticeModalOpen(true); setFabOpen(false); }} 
+                className="flex items-center gap-3 bg-card border border-accent/30 text-accent hover:bg-accent/10 px-4 py-2.5 rounded-full shadow-lg transition-colors group whitespace-nowrap"
+              >
                 <span className="text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">Broadcast Notification</span>
                 <Globe className="h-5 w-5 shrink-0" />
               </button>
-              <button onClick={() => { toast.success("Institution report exported to Excel"); setFabOpen(false); }} className="flex items-center gap-3 bg-card border border-blue-500/30 text-blue-500 hover:bg-blue-500/10 px-4 py-2.5 rounded-full shadow-lg transition-colors group whitespace-nowrap">
+              <button onClick={handleDownloadReport} className="flex items-center gap-3 bg-card border border-blue-500/30 text-blue-500 hover:bg-blue-500/10 px-4 py-2.5 rounded-full shadow-lg transition-colors group whitespace-nowrap">
                 <span className="text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">Download Full Report</span>
                 <Download className="h-5 w-5 shrink-0" />
               </button>
@@ -453,6 +488,42 @@ export default function PrincipalView({ activePage = "dashboard" }: { activePage
         </button>
       </div>
 
+      <Dialog open={noticeModalOpen} onOpenChange={setNoticeModalOpen}>
+        <DialogContent className="sm:max-w-[500px] border-border/50 bg-surface-warm shadow-2xl p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold font-syne tracking-wide flex items-center gap-2 text-accent">
+              <Globe className="h-5 w-5" /> Broadcast Institutional Notice
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="bg-accent/10 p-4 border border-accent/20 rounded-xl">
+               <p className="text-[13px] font-bold text-accent mb-1">Send to all Departments</p>
+               <p className="text-[11px] text-muted-foreground leading-relaxed text-balance">
+                 This directive will appear on all HOD and Mentor dashboards immediately. Use this to issue systemic policy changes or critical compliance mandates.
+               </p>
+            </div>
+            <textarea 
+              value={noticeText}
+              onChange={(e) => setNoticeText(e.target.value)}
+              className="w-full bg-surface-hover/50 border border-border/50 rounded-xl p-4 text-sm focus:outline-none focus:border-accent/50 text-foreground resize-none transition-colors" 
+              rows={4} 
+              placeholder="Enter official institutional directive..."
+            />
+            <div className="flex justify-end gap-3 mt-2">
+              <button onClick={() => setNoticeModalOpen(false)} className="px-5 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button 
+                disabled={!noticeText.trim()}
+                onClick={() => { 
+                  toast.success("Institutional Notice Broadcasted to all Departments"); 
+                  setNoticeText("");
+                  setNoticeModalOpen(false); 
+                }} 
+                className="px-6 py-2.5 text-[11px] font-bold bg-accent text-background rounded-lg shadow-[0_4px_10px_rgba(255,215,0,0.2)] hover:shadow-[0_0_20px_rgba(255,215,0,0.4)] disabled:opacity-50 transition-all uppercase tracking-wider"
+              >Broadcast Notice</button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

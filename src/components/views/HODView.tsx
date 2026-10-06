@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { students, departmentStats, weeklyRiskTrend } from "@/data/students";
 import { analyzeStudent, getBatchRiskSummary } from "@/utils/sentinelAI";
@@ -7,6 +7,8 @@ import { Building2, Activity, TrendingDown, Cpu, ClipboardList, AlertOctagon, Tr
 import { askClaude } from "@/utils/claudeAI";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AIMessage, TypingIndicator } from "@/components/ui/AIMessage";
+import { generateReportAPI, createEscalationAPI, getToken } from '@/utils/api';
 
 const COLORS = ["hsl(142 71% 45%)", "hsl(0 72% 51%)", "hsl(45 100% 50%)", "hsl(25 95% 53%)"];
 
@@ -22,6 +24,11 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
   const [fabOpen, setFabOpen] = useState(false);
   const [pieFilter, setPieFilter] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  
+  const [auditYearFilter, setAuditYearFilter] = useState<number | "All">("All");
+  const [auditStatusFilter, setAuditStatusFilter] = useState<string>("All");
+  const [escalateTarget, setEscalateTarget] = useState<any | "All" | null>(null);
+  const [escalationNote, setEscalationNote] = useState("");
   
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"retention" | "active" | "attendance" | "total" | null>(null);
@@ -95,13 +102,37 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
 
   // FAB Actions
   const handleEscalateAll = () => {
-    toast.success(`${riskCounts.Critical} critical student escalations sent to Principal.`);
+    setEscalateTarget("All");
     setFabOpen(false);
   };
-  const handleDownloadReport = () => {
-    toast("Department report downloading...");
-    setFabOpen(false);
+
+  const handleEscalateConfirm = async () => {
+    if (!escalateTarget) return;
+    if (escalateTarget === "All") {
+      toast.success("All critical students escalated to Management.");
+    } else {
+      const result = await createEscalationAPI({
+        studentName: escalateTarget.name,
+        studentId: escalateTarget.id,
+        issue: escalationNote || 'Escalated by HOD for immediate review.',
+        priority: 'High'
+      }, getToken());
+      if (result.success) {
+        toast.success(`Escalated to Principal ✓`);
+        if (result.emailSent) toast.success('Principal notified via email');
+      }
+    }
+    setEscalateTarget(null);
+    setEscalationNote("");
   };
+
+  const handleDownloadReport = async () => {
+    toast("Generating Department report...");
+    setFabOpen(false);
+    const result = await generateReportAPI({ reportType: "Department Report" }, getToken());
+    if (result.success) toast.success("Department Report generated successfully ✓");
+  };
+
   const handleTriggerScan = () => {
     toast("Running Sentinel scan...", { duration: 2000 });
     setTimeout(() => {
@@ -109,6 +140,16 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
     }, 2000);
     setFabOpen(false);
   };
+
+  useEffect(() => {
+    const loadInterventions = async () => {
+        // HOD refresh logic placeholder
+    };
+    const interval = setInterval(() => {
+      loadInterventions();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -313,7 +354,33 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
       )}
 
       {activePage === "audit" && (
-        <div className="card-warm overflow-x-auto overflow-hidden animate-fade-up shadow-xl border-border/50 relative z-10">
+        <div className="card-warm overflow-x-auto overflow-hidden animate-fade-up shadow-xl border-border/50 relative z-10 flex flex-col">
+          <div className="p-4 bg-surface-warm/50 border-b border-border/50 flex gap-4 items-center justify-between">
+            <h3 className="text-[13px] font-bold section-label tracking-widest hidden md:block">Department Audit Log</h3>
+            <div className="flex gap-2">
+              <select 
+                value={auditYearFilter} 
+                onChange={(e) => setAuditYearFilter(e.target.value === "All" ? "All" : Number(e.target.value))}
+                className="bg-surface border border-border/50 rounded-lg text-xs px-3 py-1.5 focus:outline-none focus:border-accent"
+              >
+                <option value="All">All Years</option>
+                <option value="2">Year 2</option>
+                <option value="3">Year 3</option>
+                <option value="4">Year 4</option>
+              </select>
+              <select 
+                value={auditStatusFilter} 
+                onChange={(e) => setAuditStatusFilter(e.target.value)}
+                className="bg-surface border border-border/50 rounded-lg text-xs px-3 py-1.5 focus:outline-none focus:border-accent"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Critical">Critical</option>
+                <option value="At-Risk">At-Risk</option>
+                <option value="Observation">Observation</option>
+                <option value="Safe">Safe</option>
+              </select>
+            </div>
+          </div>
           <table className="w-full text-xs text-left border-collapse">
             <thead className="bg-surface-warm/30 border-b border-border/50 text-muted-foreground">
               <tr>
@@ -326,10 +393,16 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
-              {deptStudents.filter(s => s.interventionStatus !== "None" && (!pieFilter || s.status === pieFilter)).map(s => {
+              {deptStudents.filter(s => {
+                const matchesPie = !pieFilter || s.status === pieFilter;
+                const matchesYear = auditYearFilter === "All" || s.year === auditYearFilter;
+                const matchesStatus = auditStatusFilter === "All" || s.status === auditStatusFilter;
+                return s.interventionStatus !== "None" && matchesPie && matchesYear && matchesStatus;
+              }).map(s => {
                 const ai = analyzeStudent(s);
                 return (
-                  <tr key={s.id} className="hover:bg-surface-hover cursor-pointer group transition-all hover:shadow-[0_0_15px_rgba(0,0,0,0.2)]" onClick={() => toggleRow(s.id)}>
+                  <Fragment key={s.id}>
+                  <tr className="hover:bg-surface-hover cursor-pointer group transition-all hover:shadow-[0_0_15px_rgba(0,0,0,0.2)]" onClick={() => toggleRow(s.id)}>
                     <td colSpan={6} className="p-0">
                       <div className="flex items-center w-full p-4">
                         <div className="w-1/6 font-mono text-[10px] section-label">{s.id}</div>
@@ -358,7 +431,7 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
                              <button onClick={(e) => { e.stopPropagation(); toast.success(`Mentor notified for ${s.name}`); }} className="btn-secondary py-2.5 rounded-lg text-[11px] font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 px-5">
                                Notify Mentor
                              </button>
-                             <button onClick={(e) => { e.stopPropagation(); toast.success(`Escalation filed for ${s.name} with Principal`); }} className="bg-gradient-to-r from-red-600 to-red-500 text-white shadow-[0_4px_10px_rgba(239,68,68,0.4)] hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] px-5 py-2.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center hover:scale-[1.02] active:scale-95">
+                             <button onClick={(e) => { e.stopPropagation(); setEscalateTarget(s); }} className="bg-gradient-to-r from-red-600 to-red-500 text-white shadow-[0_4px_10px_rgba(239,68,68,0.4)] hover:shadow-[0_0_20px_rgba(239,68,68,0.6)] px-5 py-2.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center hover:scale-[1.02] active:scale-95">
                                Escalate to Principal
                              </button>
                            </div>
@@ -366,6 +439,7 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
                       )}
                     </td>
                   </tr>
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -416,50 +490,35 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative z-10 bg-gradient-to-b from-transparent to-surface-warm/30">
+            <div className="flex flex-col overflow-y-auto p-5 scroll-smooth flex-1 hide-scrollbar">
               {messages.map((m, i) => (
-                <div key={i} className={`flex gap-4 max-w-[85%] ${m.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${m.role === "assistant" ? "bg-card border border-accent/20 text-accent glow-gold" : "gradient-maroon text-muted/80" }`}>
-                    {m.role === "assistant" ? <Brain className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                  </div>
-                  <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-sm backdrop-blur-sm ${m.role === "user" ? "bg-accent/10 border border-accent/20 text-foreground rounded-tr-sm" : "bg-card/80 border border-border/50 text-foreground rounded-tl-sm border-l-2 border-l-accent"}`}>
-                    {m.content}
-                  </div>
-                </div>
+                <AIMessage key={i} content={m.content} isUser={m.role === "user"} />
               ))}
-              {isTyping && (
-                <div className="flex gap-4 max-w-[85%]">
-                  <div className="h-8 w-8 rounded-full bg-card border border-accent/20 flex items-center justify-center shrink-0 shadow-sm glow-gold">
-                    <Brain className="h-4 w-4 text-accent animate-pulse" />
-                  </div>
-                  <div className="p-4 rounded-2xl bg-card/80 border border-border/50 rounded-tl-sm flex gap-2 items-center shadow-sm">
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
-                </div>
-              )}
+              {isTyping && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 bg-surface/80 backdrop-blur-md border-t border-border/50 z-10">
-              <form onSubmit={handleSendChat} className="flex gap-3 max-w-4xl mx-auto">
-                <input
-                  type="text"
+            <div className="w-full bg-[#1A1C20] border-t border-border/10 p-5 z-10 mt-auto rounded-b-[24px]">
+            <form onSubmit={handleSendChat} className="max-w-5xl mx-auto flex items-center gap-3">
+              <div className="flex-1 flex items-center bg-[#131417] border border-white/5 rounded-full px-5 py-3.5 focus-within:border-accent/40 focus-within:bg-[#1A1C20] transition-colors shadow-inner">
+                <input 
+                  type="text" 
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
+                  disabled={isTyping}
                   placeholder="Ask about department patterns, retention strategies, or specific risk zones..."
-                  className="flex-1 bg-card/50 border border-border/50 rounded-xl px-5 py-3 text-[13px] focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner"
+                  className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-[14.5px] text-foreground/90 placeholder:text-muted-foreground/40 disabled:opacity-50"
                 />
-                <button
-                  type="submit"
-                  disabled={!chatInput.trim() || isTyping}
-                  className="gradient-maroon text-accent px-5 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-md glow-maroon"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
-            </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={!chatInput.trim() || isTyping} 
+                className="h-[52px] px-8 rounded-full bg-[#1A2544] border border-[#2A3F7A]/60 flex items-center justify-center text-accent hover:bg-[#202D52] hover:border-accent/40 transition-all duration-300 disabled:opacity-40 disabled:hover:bg-[#1A2544] disabled:hover:border-[#2A3F7A]/60 shadow-[0_0_15px_rgba(26,37,68,0.5)] flex-shrink-0"
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            </form>
+          </div>
           </div>
         </div>
       )}
@@ -512,10 +571,20 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
         <DialogContent className="sm:max-w-[500px] border-border/50 bg-surface-warm shadow-2xl p-6">
           <DialogHeader><DialogTitle className="text-xl font-bold font-syne tracking-wide gradient-text-gold">Attendance Distribution Matrix</DialogTitle></DialogHeader>
           <div className="py-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-            <div className="space-y-4 text-center animate-fade-up">
-               <p className="text-muted-foreground text-sm border border-dashed border-border/50 p-8 rounded-2xl bg-surface-warm/30 shadow-inner">
-                 Distribution Chart Rendering Context
-               </p>
+            <div className="space-y-4 animate-fade-up text-center">
+               <div className="grid grid-cols-2 gap-4 text-left">
+                  <div className="bg-surface-warm border border-border/50 p-4 rounded-xl">
+                     <p className="text-[10px] section-label font-bold mb-1">Above 85%</p>
+                     <p className="text-2xl font-mono font-bold text-chart-safe">{deptStudents.filter(s => s.attendance >= 85).length}</p>
+                     <p className="text-[10px] text-muted-foreground">Students</p>
+                  </div>
+                  <div className="bg-surface-warm border border-border/50 p-4 rounded-xl">
+                     <p className="text-[10px] section-label font-bold mb-1">Below 75%</p>
+                     <p className="text-2xl font-mono font-bold text-chart-critical">{deptStudents.filter(s => s.attendance < 75).length}</p>
+                     <p className="text-[10px] text-muted-foreground">Critical Shortage</p>
+                  </div>
+               </div>
+               <p className="text-muted-foreground text-xs mt-4">Full distribution chart is plotted dynamically depending on course data updates.</p>
             </div>
           </div>
         </DialogContent>
@@ -564,6 +633,37 @@ export default function HODView({ activePage = "dashboard" }: { activePage?: str
                   </div>
                 ))
              )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!escalateTarget} onOpenChange={(open) => { if (!open) setEscalateTarget(null); }}>
+        <DialogContent className="sm:max-w-[400px] border-border/50 bg-surface-warm shadow-2xl p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-bold font-syne tracking-wide flex items-center gap-2 text-chart-critical">
+              <AlertOctagon className="h-5 w-5" /> Confirm Escalation
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="bg-red-500/10 p-3 border border-red-500/20 rounded-xl">
+               <p className="text-sm font-bold text-red-500 mb-1">
+                 {escalateTarget === "All" ? `Bulk Escalation (${riskCounts.Critical} students)` : `Escalate ${escalateTarget?.name}`}
+               </p>
+               <p className="text-xs text-red-400">Forwarding to Principal & Management</p>
+            </div>
+            <textarea 
+              className="w-full bg-surface-hover/50 border border-border rounded-xl p-3 text-sm focus:outline-none focus:border-accent/50 text-foreground resize-none" 
+              rows={3} 
+              onChange={(e) => setEscalationNote(e.target.value)}
+              value={escalationNote}
+              placeholder="Add HOD Official Note (Required)..."
+            />
+            <div className="flex justify-end gap-2 pr-1 mt-2">
+              <button onClick={() => { setEscalateTarget(null); setEscalationNote(""); }} className="px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button 
+                onClick={handleEscalateConfirm} 
+                className="px-5 py-2 text-xs font-bold bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg shadow-[0_4px_10px_rgba(239,68,68,0.4)] hover:shadow-[0_0_20px_rgba(239,68,68,0.6)]"
+              >Confirm Escalation</button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -1,0 +1,317 @@
+{
+    "Logistic Regression": {
+        "model_name": "Logistic Regression",
+        "metrics": {
+            "accuracy": 0.7502824858757062,
+            "precision": 0.6829403712926857,
+            "recall": 0.6544777560160241,
+            "f1": 0.6604975606639045,
+            "roc_auc": 0.8695351662650088,
+            "confusion_matrix": [
+                [
+                    239,
+                    31,
+                    46
+                ],
+                [
+                    33,
+                    45,
+                    73
+                ],
+                [
+                    15,
+                    23,
+                    380
+                ]
+            ],
+            "cv_score": 0.766035326308324,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 6.5990989208221436
+        },
+        "shap": []
+    },
+    "Decision Tree": {
+        "model_name": "Decision Tree",
+        "metrics": {
+            "accuracy": 0.6926553672316385,
+            "precision": 0.637243778263249,
+            "recall": 0.6394350050665266,
+            "f1": 0.637637083539608,
+            "roc_auc": 0.7412691517767103,
+            "confusion_matrix": [
+                [
+                    229,
+                    46,
+                    41
+                ],
+                [
+                    36,
+                    65,
+                    50
+                ],
+                [
+                    38,
+                    61,
+                    319
+                ]
+            ],
+            "cv_score": 0.6747669910821678,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 0.49227476119995117
+        },
+        "shap": []
+    },
+    "Random Forest": {
+        "model_name": "Random Forest",
+        "metrics": {
+            "accuracy": 0.7762711864406779,
+            "precision": 0.7189037195829456,
+            "recall": 0.6910267728397805,
+            "f1": 0.6991251601094306,
+            "roc_auc": 0.8738936688823534,
+            "confusion_matrix": [
+                [
+                    244,
+                    31,
+                    41
+                ],
+                [
+                    35,
+                    57,
+                    59
+                ],
+                [
+                    10,
+                    22,
+                    386
+                ]
+            ],
+            "cv_score": 0.7739494831874182,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 5.099844455718994
+        },
+        "shap": []
+    },
+    "SVM": {
+        "model_name": "SVM",
+        "metrics": {
+            "accuracy": 0.7604519774011299,
+            "precision": 0.6983584526862819,
+            "recall": 0.662292634397324,
+            "f1": 0.6702101906739459,
+            "roc_auc": 0.8700911297765037,
+            "confusion_matrix": [
+                [
+                    236,
+                    33,
+                    47
+                ],
+                [
+                    27,
+                    46,
+                    78
+                ],
+                [
+                    6,
+                    21,
+                    391
+                ]
+            ],
+            "cv_score": 0.7671640718218541,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 16.907153606414795
+        },
+        "shap": []
+    },
+    "KNN": {
+        "model_name": "KNN",
+        "metrics": {
+            "accuracy": 0.7062146892655368,
+            "precision": 0.6225828480283705,
+            "recall": 0.6002788895970483,
+            "f1": 0.602598699176415,
+            "roc_auc": 0.8031231490238132,
+            "confusion_matrix": [
+                [
+                    215,
+                    44,
+                    57
+                ],
+                [
+                    31,
+                    33,
+                    87
+                ],
+                [
+                    16,
+                    25,
+                    377
+                ]
+            ],
+            "cv_score": 0.7188513199446049,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 3.5982463359832764
+        },
+        "shap": []
+    },
+    "Naive Bayes": {
+        "model_name": "Naive Bayes",
+        "metrics": {
+            "accuracy": 0.7016949152542373,
+            "precision": 0.6407480935274469,
+            "recall": 0.6125883968183362,
+            "f1": 0.6187258730747894,
+            "roc_auc": 0.8249280962462148,
+            "confusion_matrix": [
+                [
+                    204,
+                    48,
+                    64
+                ],
+                [
+                    24,
+                    46,
+                    81
+                ],
+                [
+                    18,
+                    29,
+                    371
+                ]
+            ],
+            "cv_score": 0.7213898592602176,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 0.14056158065795898
+        },
+        "shap": []
+    },
+    "Gradient Boosting": {
+        "model_name": "Gradient Boosting",
+        "metrics": {
+            "accuracy": 0.7615819209039548,
+            "precision": 0.6957332243046529,
+            "recall": 0.6733522557642019,
+            "f1": 0.6794492700180258,
+            "roc_auc": 0.8782537734936389,
+            "confusion_matrix": [
+                [
+                    243,
+                    32,
+                    41
+                ],
+                [
+                    38,
+                    52,
+                    61
+                ],
+                [
+                    13,
+                    26,
+                    379
+                ]
+            ],
+            "cv_score": 0.7779030874580104,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 24.26239585876465
+        },
+        "shap": []
+    },
+    "AdaBoost": {
+        "model_name": "AdaBoost",
+        "metrics": {
+            "accuracy": 0.7333333333333333,
+            "precision": 0.6442562228691137,
+            "recall": 0.6300829215067405,
+            "f1": 0.6297698400849994,
+            "roc_auc": 0.8329688154416085,
+            "confusion_matrix": [
+                [
+                    240,
+                    36,
+                    40
+                ],
+                [
+                    51,
+                    36,
+                    64
+                ],
+                [
+                    25,
+                    20,
+                    373
+                ]
+            ],
+            "cv_score": 0.756146883071453,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 2.501352071762085
+        },
+        "shap": []
+    },
+    "XGBoost": {
+        "model_name": "XGBoost",
+        "metrics": {
+            "accuracy": 0.7717514124293785,
+            "precision": 0.7168825161887141,
+            "recall": 0.6928280337023294,
+            "f1": 0.7004894092831218,
+            "roc_auc": 0.8826693796629738,
+            "confusion_matrix": [
+                [
+                    236,
+                    37,
+                    43
+                ],
+                [
+                    34,
+                    62,
+                    55
+                ],
+                [
+                    12,
+                    21,
+                    385
+                ]
+            ],
+            "cv_score": 0.7680156026125751,
+            "classes": [
+                "Dropout",
+                "Enrolled",
+                "Graduate"
+            ],
+            "training_time_seconds": 68.47402119636536
+        },
+        "shap": []
+    }
+}

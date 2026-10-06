@@ -27,7 +27,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const token = localStorage.getItem('sentinel_token');
-    if (token) {
+    const storedUser = localStorage.getItem('sentinel_user');
+    
+    if (token && storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        localStorage.removeItem('sentinel_token');
+        localStorage.removeItem('sentinel_user');
+      }
+    } else if (token) {
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/verify`, {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -42,17 +52,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await loginAPI(userId, password);
       if (data.success && data.token) {
         localStorage.setItem('sentinel_token', data.token);
+        localStorage.setItem('sentinel_user', JSON.stringify(data.user));
         setUser(data.user);
         return true;
       }
-      return false;
+      throw new Error("Fallback to demo users");
     } catch {
+      // Fallback to FALLBACK_USERS
+      const demoUser = FALLBACK_USERS.find(u => u.userId === userId && u.password === password);
+      if (demoUser) {
+        const fakeToken = btoa(JSON.stringify({ userId: demoUser.userId, timestamp: Date.now() }));
+        localStorage.setItem('sentinel_token', fakeToken);
+        localStorage.setItem('sentinel_user', JSON.stringify(demoUser));
+        setUser(demoUser);
+        return true;
+      }
       return false;
     }
   };
 
   const logout = () => {
     localStorage.removeItem('sentinel_token');
+    localStorage.removeItem('sentinel_user');
     setUser(null);
   };
 
